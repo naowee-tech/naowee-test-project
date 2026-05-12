@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Tabla de inversión · Admin</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
+<link rel="stylesheet" href="../shared/shell.css">
+<link rel="stylesheet" href="../shared/pages.css?v=20260512m">
+</head>
+<body>
+<div class="shell">
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <header class="top-header" id="topHeader"></header>
+    <div class="page" id="pageContent"></div>
+  </div>
+</div>
+<div id="demoRoleSwitcherRoot"></div>
+
+<script type="module">
+  import ProjectData from '../shared/data.js';
+  import { mountShell } from '../shared/shell.js?v=20260511g';
+  import { formatoMoneda, formatoFecha } from '../shared/states.js';
+  ProjectData.setPerfil('admin');
+  mountShell({ activeId: 'inversion' });
+
+  const enInversion = ProjectData.getProyectos(p => p.estado === 'en_inversion');
+  const conConcepto = ProjectData.getProyectos(p => p.estado === 'concepto_favorable');
+  const totalInvertido = enInversion.reduce((s,p) => s + (p.inversion?.montoAprobado || 0), 0);
+  const totalSolicitado = enInversion.reduce((s,p) => s + (p.montoSolicitado || 0), 0);
+  const ahorro = totalSolicitado - totalInvertido;
+
+  /* Formato abreviado tipo $4.8 MM para los KPIs */
+  const formatoMonedaAbrev = (n) => {
+    if (!n) return '$0';
+    if (n >= 1e12) return `$${(n / 1e12).toFixed(1).replace(/\.0$/, '')} B`;
+    if (n >= 1e9)  return `$${(n / 1e9).toFixed(1).replace(/\.0$/, '')} MM`;
+    if (n >= 1e6)  return `$${(n / 1e6).toFixed(1).replace(/\.0$/, '')} M`;
+    if (n >= 1e3)  return `$${(n / 1e3).toFixed(0)} K`;
+    return `$${n}`;
+  };
+
+  const ICONS = {
+    back:  '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+    money: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="20 6 9 17 4 12"/></svg>',
+    pend:  '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    delta: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="17 13 12 18 7 13"/><line x1="12" y1="18" x2="12" y2="6"/></svg>',
+    deltaUp: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polyline points="17 11 12 6 7 11"/><line x1="12" y1="6" x2="12" y2="18"/></svg>'
+  };
+
+  document.getElementById('pageContent').innerHTML = `
+    <div class="page-fade-in">
+      <a class="naowee-btn naowee-btn--mute naowee-btn--small back-btn" href="dashboard.html" style="margin-bottom:14px">${ICONS.back}Volver al panel</a>
+      <div class="naowee-page-header naowee-page-header--centered">
+        <div class="naowee-page-header__main">
+          <h1>Tabla de inversión</h1>
+          <p>Sumatoria de los proyectos activados como inversión del Estado. Esta vista es informativa — la ejecución de presupuesto vendrá en alcance posterior.</p>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <span class="kpi-card__lbl">Inversión total activada</span>
+            <div class="kpi-card__ico kpi-card__ico--positive">${ICONS.money}</div>
+          </div>
+          <div class="kpi-card__val" title="${formatoMoneda(totalInvertido)}" style="color:var(--green)">${formatoMonedaAbrev(totalInvertido)}<small>COP</small></div>
+          <div class="kpi-card__foot">
+            <span class="kpi-trend kpi-trend--up">${enInversion.length} proyecto${enInversion.length===1?'':'s'}</span>
+            <span>vigente${enInversion.length===1?'':'s'}</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <span class="kpi-card__lbl">Listos para activar</span>
+            <div class="kpi-card__ico" style="background:#eef5ff;color:#1f78d1">${ICONS.check}</div>
+          </div>
+          <div class="kpi-card__val">${conConcepto.length}</div>
+          <div class="kpi-card__foot">
+            <span class="kpi-trend kpi-trend--flat">Concepto favorable</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <span class="kpi-card__lbl">Solicitado total</span>
+            <div class="kpi-card__ico kpi-card__ico--caution">${ICONS.pend}</div>
+          </div>
+          <div class="kpi-card__val" title="${formatoMoneda(totalSolicitado)}">${formatoMonedaAbrev(totalSolicitado)}<small>COP</small></div>
+          <div class="kpi-card__foot">
+            <span class="kpi-trend kpi-trend--flat">Antes de aprobación</span>
+          </div>
+        </div>
+
+        <div class="kpi-card">
+          <div class="kpi-card__top">
+            <span class="kpi-card__lbl">Diferencia ajustada</span>
+            <div class="kpi-card__ico" style="background:${ahorro >= 0 ? '#e6f4e7' : '#fff0ee'};color:${ahorro >= 0 ? '#1f8923' : '#c01818'}">${ahorro >= 0 ? ICONS.delta : ICONS.deltaUp}</div>
+          </div>
+          <div class="kpi-card__val" title="${formatoMoneda(Math.abs(ahorro))}" style="color:${ahorro >= 0 ? 'var(--green)' : '#c01818'}">${formatoMonedaAbrev(Math.abs(ahorro))}</div>
+          <div class="kpi-card__foot">
+            <span class="kpi-trend ${ahorro >= 0 ? 'kpi-trend--up' : 'kpi-trend--down'}">${ahorro >= 0 ? 'Ahorro' : 'Sobre-asignación'}</span>
+          </div>
+        </div>
+      </div>
+
+      ${conConcepto.length > 0 ? `
+        <div class="naowee-message naowee-message--informative" role="status" style="margin:24px 0">
+          <div class="naowee-message__header">
+            <span class="naowee-message__icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fff" stroke-width="1.4"/><path d="M8 7v4M8 4.5v.05" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+            <span class="naowee-message__title">${conConcepto.length} proyecto${conConcepto.length>1?'s':''} con concepto favorable ${conConcepto.length>1?'esperan':'espera'} activación</span>
+          </div>
+          <div class="naowee-message__text">Activar inversión enlaza el proyecto al BPIN, asigna centro de costo y (si es infraestructura) habilita el registro SUID del escenario.</div>
+          <a class="naowee-btn naowee-btn--loud naowee-message__action" href="proyectos.html">Revisar →</a>
+        </div>
+      ` : ''}
+
+      <article class="naowee-card panel-card" style="height:auto">
+        <div class="panel-head">
+          <div>
+            <h3>Proyectos en inversión</h3>
+            <div class="sub">Bienio 2025-2026 · <span id="invCount">${enInversion.length}</span> proyecto${enInversion.length===1?'':'s'} activo${enInversion.length===1?'':'s'}</div>
+          </div>
+          <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+            <!-- Filtro por departamento (dropdown nativo, ligero) -->
+            <select id="filterDpto" class="naowee-dropdown__select" style="min-width:180px;padding:8px 12px;border:1px solid var(--border-dark);border-radius:var(--radius-md);font-size:13px;font-family:inherit;background:#fff">
+              <option value="">Todos los departamentos</option>
+              ${[...new Set(enInversion.map(p => p.departamento).filter(Boolean))].sort().map(d => `<option value="${d}">${d}</option>`).join('')}
+            </select>
+            <button type="button" id="btnExportCsv" class="naowee-btn naowee-btn--mute naowee-btn--small">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              Exportar CSV
+            </button>
+            <a href="proyectos.html" class="naowee-btn naowee-btn--mute naowee-btn--small">Ver todos</a>
+          </div>
+        </div>
+        <div class="panel-card__body" style="padding-bottom:14px">
+          ${enInversion.length === 0 ? `
+            <div class="naowee-empty-state" style="padding:40px 20px">
+              <div class="naowee-empty-state__msg">Aún no hay proyectos activados como inversión.</div>
+            </div>
+          ` : `
+            <table class="dash-table inversion-table">
+              <thead>
+                <tr>
+                  <th>BPIN</th>
+                  <th>Proyecto</th>
+                  <th>Municipio</th>
+                  <th>Ejecutor</th>
+                  <th class="numeric">Presupuesto</th>
+                  <th class="numeric">Aprobado</th>
+                  <th>Fuentes</th>
+                  <th>SUID</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${enInversion.map(p => {
+                  const suidCode = p.inversion?.suidEscenario || p.registroSuid?.codigo;
+                  const suidInventariado = p.registroSuid?.estado === 'completo';
+                  const fuentes = p.cofinanciacion || [];
+                  const fuentePrincipal = fuentes[0];
+                  const fuentesExtra = fuentes.slice(1);
+                  return `
+                  <tr data-id="${p.idUnico}">
+                    <td onclick="location.href='proyecto-detalle.html?id=${p.idUnico}'" style="cursor:pointer"><span class="code-cell">${p.inversion?.bpin || '—'}</span></td>
+                    <td onclick="location.href='proyecto-detalle.html?id=${p.idUnico}'" class="name-cell" style="cursor:pointer">
+                      <div class="name-cell__inner"><span class="name-cell__title" title="${p.nombre}">${p.nombre}</span></div>
+                      <div class="meta-line">${p.inversion?.centroCosto || '—'}</div>
+                    </td>
+                    <td onclick="location.href='proyecto-detalle.html?id=${p.idUnico}'" style="cursor:pointer">${p.municipio}<div class="meta-line" style="margin-top:2px">${p.departamento || ''}</div></td>
+                    <td onclick="location.href='proyecto-detalle.html?id=${p.idUnico}'" class="inversion-table__ejecutor" style="cursor:pointer" title="${p.inversion?.ejecutor || p.formuladora?.nombre || '—'}">${p.inversion?.ejecutor || p.formuladora?.nombre || '—'}</td>
+                    <td onclick="location.href='proyecto-detalle.html?id=${p.idUnico}'" class="numeric" style="font-weight:600;cursor:pointer">${formatoMoneda(p.presupuesto)}</td>
+                    <td onclick="location.href='proyecto-detalle.html?id=${p.idUnico}'" class="numeric" style="font-weight:600;color:var(--green);cursor:pointer">${formatoMoneda(p.inversion?.montoAprobado)}</td>
+                    <td onclick="location.href='proyecto-detalle.html?id=${p.idUnico}'" class="inversion-table__fuentes" style="cursor:pointer">
+                      ${fuentePrincipal ? `<span class="naowee-badge naowee-badge--informative naowee-badge--quiet inversion-fuente__chip">${fuentePrincipal}</span>` : '<span style="color:var(--text-secondary);font-size:11.5px">—</span>'}
+                      ${fuentesExtra.length > 0 ? `
+                        <span class="inversion-fuente__more"
+                              tabindex="0"
+                              role="button"
+                              aria-label="Ver ${fuentesExtra.length} fuente${fuentesExtra.length>1?'s':''} adicional${fuentesExtra.length>1?'es':''}"
+                              data-fuentes="${fuentesExtra.join(' · ')}">
+                          +${fuentesExtra.length}
+                          <span class="inversion-fuente__tooltip" role="tooltip">
+                            <span class="inversion-fuente__tooltip-title">${fuentesExtra.length} fuente${fuentesExtra.length>1?'s':''} adicional${fuentesExtra.length>1?'es':''}</span>
+                            ${fuentesExtra.map(f => `<span class="inversion-fuente__tooltip-row">${f}</span>`).join('')}
+                          </span>
+                        </span>
+                      ` : ''}
+                    </td>
+                    <td class="inversion-table__suid">
+                      ${suidCode
+                        ? `<a href="registro-suid.html?id=${p.idUnico}"
+                              class="inversion-suid-pill ${suidInventariado ? 'is-done' : 'is-pending'}"
+                              title="${suidCode} · ${suidInventariado ? 'Inventariado' : 'Pendiente de diligenciar'}">
+                            <span class="inversion-suid-pill__dot" aria-hidden="true"></span>
+                            <span class="inversion-suid-pill__code">${suidCode}</span>
+                          </a>`
+                        : `<a href="registro-suid.html?id=${p.idUnico}" class="inversion-suid-cta">Diligenciar →</a>`}
+                    </td>
+                  </tr>
+                `;}).join('')}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colspan="5" style="text-align:right">Sumatoria total de inversión:</td>
+                  <td class="numeric" style="color:var(--green);font-size:14px">${formatoMoneda(totalInvertido)}</td>
+                  <td colspan="2"></td>
+                </tr>
+              </tfoot>
+            </table>
+          `}
+        </div>
+      </article>
+    </div>
+  `;
+
+  /* ═══ Filtro por departamento (filtra rows visibles) ═══ */
+  const filterDpto = document.getElementById('filterDpto');
+  const invCount = document.getElementById('invCount');
+  filterDpto?.addEventListener('change', () => {
+    const v = filterDpto.value;
+    let visibles = 0;
+    document.querySelectorAll('table.dash-table tbody tr').forEach(tr => {
+      const id = tr.dataset.id;
+      const proj = enInversion.find(p => p.idUnico === id);
+      const match = !v || proj?.departamento === v;
+      tr.style.display = match ? '' : 'none';
+      if (match) visibles++;
+    });
+    if (invCount) invCount.textContent = visibles;
+  });
+
+  /* ═══ Exportar CSV — descarga la tabla completa (sin filtro) ═══ */
+  document.getElementById('btnExportCsv')?.addEventListener('click', () => {
+    const v = filterDpto?.value;
+    const rows = v ? enInversion.filter(p => p.departamento === v) : enInversion;
+    const headers = ['BPIN', 'ID Proyecto', 'Nombre', 'Municipio', 'Departamento', 'Ejecutor', 'Presupuesto (COP)', 'Aprobado (COP)', 'Activado', 'SUID', 'Centro de costo', 'Fuentes'];
+    /* Helper: escapa comas y comillas internas (RFC 4180) */
+    const esc = (val) => {
+      const s = String(val ?? '');
+      return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+    };
+    const csvLines = [headers.join(',')];
+    rows.forEach(p => {
+      csvLines.push([
+        p.inversion?.bpin || '',
+        p.idUnico,
+        p.nombre,
+        p.municipio,
+        p.departamento || '',
+        p.inversion?.ejecutor || p.formuladora?.nombre || '',
+        p.presupuesto || 0,
+        p.inversion?.montoAprobado || 0,
+        p.inversion?.activadaEn ? p.inversion.activadaEn.split('T')[0] : '',
+        p.inversion?.suidEscenario || p.registroSuid?.codigo || '',
+        p.inversion?.centroCosto || '',
+        (p.cofinanciacion || []).join(' | ')
+      ].map(esc).join(','));
+    });
+    /* BOM UTF-8 para que Excel respete acentos */
+    const blob = new Blob(['﻿' + csvLines.join('\n')], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `tabla-inversion-${new Date().toISOString().slice(0,10)}${v ? '-' + v.toLowerCase().replace(/[^a-z]/g, '') : ''}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+</script>
+</body>
+</html>

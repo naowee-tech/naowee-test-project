@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Revisar postulación · Revisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
+<link rel="stylesheet" href="../shared/shell.css">
+<link rel="stylesheet" href="../shared/pages.css?v=20260512m">
+<style>
+  /* Plazo pill (mismo lenguaje que .plazo-inline pero como chip) */
+  .plazo-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: var(--radius-full);
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    background: #fafbff; border: 1px solid var(--border);
+  }
+  .plazo-pill--urgent { background: #fff0e6; color: #c54500; border-color: #ff9b66; }
+  .plazo-pill--ok { background: var(--green-bg); color: var(--green); border-color: #b7dfb9; }
+
+  /* CTAs semánticos para decisión: verde favorable, naranja devolver, rojo rechazar.
+     Elevation verde memorizada en --shadow-green-cta (token global). */
+  .btn-decision {
+    min-height: 48px; font-weight: 700;
+    transition: background .15s, border-color .15s, box-shadow .15s, transform .12s;
+  }
+  .btn-favorable {
+    background: #15803d !important; color: #fff !important; border-color: #15803d !important;
+    box-shadow: var(--shadow-green-cta);
+  }
+  .btn-favorable:hover {
+    background: #166f30 !important; border-color: #166f30 !important;
+    box-shadow: var(--shadow-green-cta-hover);
+    transform: translateY(-1px);
+  }
+  .btn-favorable svg { color: #fff; stroke: #fff; }
+
+  .btn-devolver {
+    background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important;
+    box-shadow: var(--shadow-accent-cta);
+  }
+  .btn-devolver:hover { background: #b8350a !important; border-color: #b8350a !important; transform: translateY(-1px); }
+
+  /* Rechazar: terciaria destructiva — naowee-btn--mute con color rojo (menos prominencia que las primarias) */
+  .btn-rechazar {
+    color: #c01818 !important;
+    background: transparent !important;
+    border: 1.5px solid transparent !important;
+  }
+  .btn-rechazar:hover { background: var(--red-bg, #fff0ee) !important; border-color: transparent !important; }
+  .btn-rechazar svg { color: #c01818; stroke: #c01818; }
+
+  /* Hero del proyecto: pill compacta con metadatos */
+  /* ── Layout 2-col: tabs (70%) + decisión sticky (30%) ── */
+  .rp-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 2.3fr) minmax(300px, 1fr); /* ~70/30 */
+    gap: 20px;
+    align-items: start;
+  }
+  @media (max-width: 1100px) {
+    .rp-layout { grid-template-columns: 1fr; }
+  }
+  .rp-layout__left { min-width: 0; order: 1; }
+  /* Más respiro entre las parejas dt/dd del tab Datos en esta pantalla */
+  .rp-layout__left .proj-data { gap: 28px 40px; padding: 4px 0 12px; }
+  .rp-layout__left .proj-data > div { margin-bottom: 4px; }
+  .rp-layout__left .proj-data dt { margin-bottom: 8px; }
+  .rp-layout__left .proj-data dd { line-height: 1.6; }
+  .rp-layout__right {
+    position: sticky; top: 16px;
+    display: flex; flex-direction: column; gap: 14px;
+    order: 2;
+  }
+
+  /* Decision en columna estrecha: CTAs verticales + paddings reducidos */
+  .rp-decision--narrow .rp-cta-grid {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+  .rp-decision--narrow .btn-decision {
+    width: 100%;
+    justify-content: center;
+  }
+  /* En narrow la observación inline tiene menos ancho — grid 1 col */
+  .rp-decision--narrow .rp-obs-grid {
+    grid-template-columns: 1fr;
+  }
+
+  /* ── Documentos grid (tab) ── */
+  .rp-docs-grid {
+    display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px;
+  }
+  .rp-doc-card {
+    display: grid; grid-template-columns: 40px 1fr auto; gap: 12px;
+    align-items: center;
+    padding: 12px 14px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: var(--radius-lg);
+    transition: border-color .15s, box-shadow .15s;
+  }
+  .rp-doc-card:hover { border-color: var(--border-dark); box-shadow: 0 4px 12px rgba(15,17,35,.06); }
+  .rp-doc-card__icon {
+    width: 40px; height: 40px; border-radius: var(--radius-md);
+    background: var(--orange-bg); color: var(--accent);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .rp-doc-card__main { min-width: 0; }
+  .rp-doc-card__name {
+    font-size: 13px; font-weight: 600; color: var(--text-primary);
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+  .rp-doc-card__meta {
+    font-size: 11.5px; color: var(--text-secondary); margin-top: 2px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+    white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  }
+
+  .rp-hero {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 22px 26px;
+    display: grid; grid-template-columns: 1fr auto; gap: 24px; align-items: start;
+    margin-bottom: 18px;
+  }
+  .rp-hero__rad {
+    font-size: 11.5px; font-weight: 600; letter-spacing: .35px;
+    color: var(--text-secondary); text-transform: uppercase;
+  }
+  .rp-hero__title {
+    font-size: 22px; font-weight: 700; line-height: 1.25;
+    color: var(--text-primary); margin: 4px 0 8px;
+  }
+  .rp-hero__meta {
+    display: flex; flex-wrap: wrap; gap: 6px 16px;
+    font-size: 12.5px; color: var(--text-secondary);
+  }
+  .rp-hero__meta span { display: inline-flex; align-items: center; gap: 6px; }
+  .rp-hero__badges { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .rp-hero__right { text-align: right; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
+  .rp-hero__amount-lbl {
+    font-size: 11px; font-weight: 700; letter-spacing: .4px;
+    color: var(--text-secondary); text-transform: uppercase;
+  }
+  .rp-hero__amount {
+    font-size: 22px; font-weight: 700; color: var(--green);
+    font-variant-numeric: tabular-nums; letter-spacing: -.01em;
+  }
+
+  /* Decisión: card destacada arriba */
+  .rp-decision {
+    background: linear-gradient(135deg, #fffaf5 0%, #fff 60%);
+    border: 1px solid var(--orange-border, #ffbf75);
+    border-radius: var(--radius-lg); padding: 22px 24px;
+    margin-bottom: 18px;
+  }
+  .rp-decision__head {
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    margin-bottom: 16px;
+  }
+  .rp-decision__title { font-size: 15px; font-weight: 700; color: var(--text-primary); }
+  .rp-decision__sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+
+  /* Wrapper del naowee-checkbox de priorización: card-style cuando hover/checked */
+  .rp-prio-wrap {
+    padding: 10px 14px; background: #fff; border: 1px solid var(--border);
+    border-radius: var(--radius-md); margin-bottom: 14px;
+    transition: border-color .15s, background .15s;
+  }
+  .rp-prio-wrap:has(.naowee-checkbox--checked) {
+    border-color: var(--accent); background: var(--orange-bg);
+  }
+  .rp-prio-wrap .naowee-checkbox { margin: 0; }
+  .rp-prio-wrap .naowee-checkbox__label { font-size: 13px; color: var(--text-primary); }
+  /* Force-hide del input nativo (algunos browsers no respetan el opacity:0 del DS) */
+  .rp-prio-wrap .naowee-checkbox input[type="checkbox"] {
+    position: absolute !important;
+    opacity: 0 !important;
+    width: 0 !important;
+    height: 0 !important;
+    pointer-events: none !important;
+    margin: 0 !important;
+  }
+
+  .rp-cta-grid {
+    display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px;
+  }
+  @media (max-width: 720px) { .rp-cta-grid { grid-template-columns: 1fr; } }
+
+  .rp-obs-block {
+    margin-top: 18px; padding: 18px 20px;
+    background: #fff; border: 1px solid var(--border); border-radius: var(--radius-md);
+    display: none;
+  }
+  .rp-obs-block.is-open { display: block; animation: rpFade .3s ease; }
+  @keyframes rpFade { from { opacity:0; transform: translateY(6px) } to { opacity:1; transform: translateY(0) } }
+  .rp-obs-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-bottom: 14px; }
+  @media (max-width: 600px) { .rp-obs-grid { grid-template-columns: 1fr; } }
+  .rp-obs-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 14px; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <header class="top-header" id="topHeader"></header>
+    <div class="page" id="pageContent"></div>
+  </div>
+</div>
+<div id="demoRoleSwitcherRoot"></div>
+
+<script type="module">
+  import ProjectData from '../shared/data.js';
+  import { mountShell } from '../shared/shell.js?v=20260511g';
+  import { ESTADOS_POSTULACION, formatoMoneda, formatoFecha, fechaCorta, diasRestantes } from '../shared/states.js';
+  import { toast } from '../shared/toast.js';
+  import { checkbox, dropdown, textarea, bindDropdowns } from '../shared/modal-convocatoria.js';
+
+  ProjectData.setPerfil('revisor');
+  mountShell({ activeId: 'bandeja' });
+
+  const id = new URLSearchParams(location.search).get('id');
+  const p = ProjectData.getProyecto(id);
+  const pageContent = document.getElementById('pageContent');
+
+  const ICONS = {
+    back: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+    pin:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/></svg>',
+    bldg: '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l8-4v18M19 21V11l-6-4"/></svg>',
+    cal:  '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>',
+    flag: '<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.5a.5.5 0 0 1 .5-.5h9.7a.5.5 0 0 1 .42.78L11.5 5l2.12 3.22a.5.5 0 0 1-.42.78H4v6.5a.5.5 0 0 1-1 0z"/></svg>',
+    clock: '<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>',
+    check: '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6"><polyline points="20 6 9 17 4 12"/></svg>',
+    revert:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 14 4 9 9 4"/><path d="M20 20v-7a4 4 0 00-4-4H4"/></svg>',
+    xicon:'<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    paperclip: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>'
+  };
+
+  if (!p) {
+    pageContent.innerHTML = `
+      <div class="naowee-empty-state">
+        <div class="naowee-empty-state__title">Proyecto no encontrado</div>
+        <a class="naowee-btn naowee-btn--quiet" href="bandeja.html">Volver a la bandeja</a>
+      </div>`;
+  } else {
+    const est = ESTADOS_POSTULACION[p.estado] || { label: p.estado, color: 'neutral' };
+    const dias = p.estado === 'en_revision' ? diasRestantes(p.fechaInicioRevision || p.fechaPostulacion) : null;
+
+    /* Smart back: bandeja si vino de ahí, sino dashboard */
+    const ref = document.referrer;
+    const backHref = ref.includes('bandeja.html') ? 'bandeja.html' : 'dashboard.html';
+    const backLabel = backHref === 'bandeja.html' ? 'Volver a la bandeja' : 'Volver al panel';
+
+    function renderPage() {
+      const events = (p.historial || []).slice().reverse();
+
+      pageContent.innerHTML = `
+        <div class="page-fade-in">
+          <a class="naowee-btn naowee-btn--mute naowee-btn--small back-btn" href="${backHref}" style="margin-bottom:14px">${ICONS.back}${backLabel}</a>
+
+          <!-- ══════ Hero del proyecto (canónico project-hero) ══════ -->
+          <div class="project-hero ${p.priorizado ? 'project-hero--priorizado' : ''}">
+            ${p.priorizado ? `
+              <span class="prio-ribbon" tabindex="0" role="img" aria-label="Proyecto priorizado por el Ministerio">
+                <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.5.5 0 0 1 .5-.5h9.7a.5.5 0 0 1 .42.78L11.5 5l2.12 3.22a.5.5 0 0 1-.42.78H4v6.5a.5.5 0 0 1-1 0z"/></svg>
+                <span class="prio-ribbon__tooltip" role="tooltip">Priorizado por el Ministerio</span>
+              </span>
+            ` : ''}
+            <div class="project-hero__top">
+              <div class="project-hero__left">
+                <div class="project-hero__rad">${(p.radicado || '—').split('-CONV-')[0]}</div>
+                <h1 class="project-hero__title">${p.nombre}</h1>
+                <div class="project-hero__meta">
+                  <span>${p.municipio}${p.departamento ? `, ${p.departamento}` : ''}</span>
+                  <span>${p.formuladora?.nombre || '—'}</span>
+                  <span>Postulado: ${formatoFecha(p.fechaPostulacion)}</span>
+                </div>
+                <div class="project-hero__badges">
+                  <span class="naowee-badge naowee-badge--${est.color} naowee-badge--quiet"><span class="naowee-badge__dot"></span>${est.label}</span>
+                  ${p.tipoSolicitud ? `<span class="naowee-badge naowee-badge--informative naowee-badge--quiet">${p.tipoSolicitud}</span>` : ''}
+                </div>
+              </div>
+              <div class="project-hero__right">
+                <div class="project-hero__label">Presupuesto del proyecto</div>
+                <div class="project-hero__amount">${formatoMoneda(p.presupuesto)}</div>
+                <div class="project-hero__breakdown">Solicitado: ${formatoMoneda(p.montoSolicitado)} · Contrapartida: ${formatoMoneda(p.contrapartida)}</div>
+                ${dias !== null ? (() => {
+                  const cls = dias <= 0 ? 'hero-deadline--vencido' : dias <= 3 ? 'hero-deadline--urgent' : dias <= 7 ? 'hero-deadline--warning' : 'hero-deadline--ok';
+                  return `
+                    <div class="hero-deadline ${cls}" title="Plazo Res. 933">
+                      <span class="hero-deadline__icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></span>
+                      <span class="hero-deadline__time">${dias <= 0 ? 'Vencido' : `${dias} día${dias===1?'':'s'}`}</span>
+                      <span class="hero-deadline__sep"></span>
+                      <span class="hero-deadline__label">para responder</span>
+                    </div>`;
+                })() : ''}
+              </div>
+            </div>
+          </div>
+
+          <!-- ══════ Layout 2-col: tabs (60%) + decisión sticky (40%) ══════ -->
+          <div class="rp-layout">
+          <aside class="rp-layout__right">
+          ${(p.estado === 'en_revision' || p.estado === 'presentado') ? `
+            <section class="rp-decision rp-decision--narrow">
+              <div class="rp-decision__head">
+                <div>
+                  <div class="rp-decision__title">Decisión de revisión</div>
+                  <div class="rp-decision__sub">Toma una decisión sobre la postulación. Las acciones de devolución y rechazo requieren observaciones.</div>
+                </div>
+              </div>
+
+              <div class="rp-prio-wrap">
+                ${checkbox({ name: 'prioCheck', value: 'priorizado', label: 'Marcar como priorizado · zonas como Chocó tienen tiempos de revisión especiales', checked: !!p.priorizado })}
+              </div>
+
+              <div class="rp-cta-grid">
+                <button type="button" class="naowee-btn naowee-btn--loud btn-decision btn-favorable" data-action="favorable">
+                  ${ICONS.check} Marcar favorable
+                </button>
+                <button type="button" class="naowee-btn naowee-btn--loud btn-decision btn-devolver" data-action="devolver">
+                  ${ICONS.revert} Devolver a subsanación
+                </button>
+                <button type="button" class="naowee-btn naowee-btn--mute btn-decision btn-rechazar" data-action="rechazar">
+                  ${ICONS.xicon} Rechazar
+                </button>
+              </div>
+
+              <div class="rp-obs-block" id="obsBlock">
+                <div style="font-size:13px;font-weight:600;color:var(--text-primary);margin-bottom:14px" id="obsTitle">Observaciones</div>
+                <form class="rp-obs-form" id="obsForm">
+                  <div class="rp-obs-grid">
+                    ${dropdown({
+                      label: 'Categoría', name: 'obsArea', value: 'Postulación',
+                      options: ['Postulación', 'Datos básicos', 'Carta de intención', 'Representante legal', 'Localización', 'Financiación']
+                    })}
+                    ${dropdown({
+                      label: 'Tipo', name: 'obsTipo', value: 'Falta documento',
+                      options: ['Falta documento', 'Inconsistencia', 'Información incompleta', 'Documento ilegible']
+                    })}
+                  </div>
+                  ${textarea({
+                    label: 'Detalle de la observación', name: 'obsTexto',
+                    placeholder: 'Describe las observaciones que el municipio debe subsanar… (mínimo 20 caracteres)',
+                    rows: 4, maxlength: 500
+                  })}
+                </form>
+                <div class="rp-obs-actions">
+                  <button type="button" class="naowee-btn naowee-btn--mute" id="cancelObs">Cancelar</button>
+                  <button type="button" class="naowee-btn naowee-btn--loud" id="confirmAction">Confirmar acción</button>
+                </div>
+              </div>
+            </section>
+          ` : `
+            <div class="naowee-message naowee-message--informative" role="status">
+              <div class="naowee-message__header">
+                <span class="naowee-message__icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fff" stroke-width="1.4"/><path d="M8 7v4M8 4.5v.05" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                <span class="naowee-message__title">Esta postulación ya fue procesada</span>
+              </div>
+              <div class="naowee-message__text">Estado actual: ${est.label}. La decisión de revisión ya no está disponible.</div>
+            </div>
+          `}
+          </aside>
+
+          <!-- ══════ Card unificada con tabs (Datos + Documentos + Historial) ══════ -->
+          <article class="naowee-card proj-tabs-card rp-layout__left">
+            <div class="naowee-tabs naowee-tabs--animated" role="tablist">
+              <button class="naowee-tab naowee-tab--selected" data-tab="datos" role="tab" type="button">Datos de la postulación</button>
+              <button class="naowee-tab" data-tab="documentos" role="tab" type="button">Documentos <span class="tab-count">${(p.documentos || []).length}</span></button>
+              <button class="naowee-tab" data-tab="historial" role="tab" type="button">Historial <span class="tab-count">${events.length}</span></button>
+            </div>
+
+            <!-- Tab: Datos -->
+            <div class="proj-tab-panel" data-panel="datos">
+              <dl class="proj-data">
+                <div><dt>Tipo de solicitud</dt><dd>${p.tipoSolicitud || '—'}</dd></div>
+                <div><dt>Fase del proyecto</dt><dd>${p.fase || '—'}</dd></div>
+                <div><dt>Monto solicitado</dt><dd style="color:var(--green);font-weight:700">${formatoMoneda(p.montoSolicitado)}</dd></div>
+                <div><dt>Contrapartida</dt><dd style="font-weight:600">${formatoMoneda(p.contrapartida)}</dd></div>
+                <div><dt>Cofinanciación</dt><dd>${(p.cofinanciacion || []).map(f => `<span class="naowee-badge naowee-badge--informative naowee-badge--quiet" style="margin-right:4px">${f}</span>`).join('') || '—'}</dd></div>
+                <div><dt>Convocatoria</dt><dd style="font-weight:600">${p.convocatoriaId || '—'}</dd></div>
+                <div style="grid-column:1/-1"><dt>Dirección del predio</dt><dd>${p.direccionPredio || '—'}</dd></div>
+                <div style="grid-column:1/-1">
+                  <dt>Representante legal</dt>
+                  <dd>
+                    <strong>${p.representante?.nombre || '—'}</strong>
+                    ${p.representante?.documento ? `<div style="color:var(--text-secondary);font-size:12px;font-weight:400;margin-top:2px">${p.representante.documento} · ${p.representante.cargo || ''}</div>` : ''}
+                  </dd>
+                </div>
+              </dl>
+
+            </div>
+
+            <!-- Tab: Documentos -->
+            <div class="proj-tab-panel" data-panel="documentos" hidden>
+              ${(p.documentos || []).length === 0 ? `
+                <div class="naowee-empty-state">
+                  <div class="naowee-empty-state__msg">Esta postulación no tiene documentos adjuntos.</div>
+                </div>
+              ` : `
+                <div class="rp-docs-grid">
+                  ${p.documentos.map(d => `
+                    <div class="rp-doc-card">
+                      <div class="rp-doc-card__icon">${ICONS.paperclip}</div>
+                      <div class="rp-doc-card__main">
+                        <div class="rp-doc-card__name" title="${d.nombre}">${d.nombre}</div>
+                        <div class="rp-doc-card__meta">${d.archivo} · ${(d.size/1024).toFixed(0)} KB</div>
+                      </div>
+                      <button type="button" class="naowee-btn naowee-btn--mute naowee-btn--small">Ver</button>
+                    </div>
+                  `).join('')}
+                </div>
+              `}
+            </div>
+
+            <!-- Tab: Historial -->
+            <div class="proj-tab-panel" data-panel="historial" hidden>
+              ${events.length === 0 ? `
+                <div class="naowee-empty-state">
+                  <div class="naowee-empty-state__msg">Sin eventos registrados aún.</div>
+                </div>
+              ` : `
+                <div class="hist-summary">
+                  <span>${events.length} evento${events.length === 1 ? '' : 's'} en el historial</span>
+                </div>
+                <div class="timeline">
+                  ${events.map(h => {
+                    const dotClass = h.actor === 'sistema' ? 'gray'
+                      : h.actor === 'revisor' ? 'orange'
+                      : h.actor === 'municipio' ? 'blue'
+                      : h.estado === 'concepto_favorable' || h.estado === 'en_inversion' || h.estado === 'favorable' ? 'green'
+                      : 'orange';
+                    return `
+                      <div class="timeline-item">
+                        <div class="timeline-dot ${dotClass}"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg></div>
+                        <div class="timeline-content">
+                          <div class="timeline-title">${h.evento}</div>
+                          <div class="timeline-date">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg>
+                            ${formatoFecha(h.ts, true)} · Por ${h.actor}
+                          </div>
+                        </div>
+                      </div>
+                    `;
+                  }).join('')}
+                </div>
+              `}
+            </div>
+          </article>
+          </div><!-- /.rp-layout -->
+        </div>
+      `;
+
+      bindInteractions();
+    }
+
+    function bindInteractions() {
+      /* Tabs */
+      const tabsEl = pageContent.querySelector('.naowee-tabs');
+      if (tabsEl) {
+        const indicator = tabsEl.querySelector('.naowee-tabs__indicator') || (() => {
+          const ind = document.createElement('span');
+          ind.className = 'naowee-tabs__indicator';
+          tabsEl.appendChild(ind);
+          return ind;
+        })();
+        const positionIndicator = (tab) => {
+          const r = tab.getBoundingClientRect();
+          const parent = tabsEl.getBoundingClientRect();
+          indicator.style.width = r.width + 'px';
+          indicator.style.transform = `translateX(${r.left - parent.left}px)`;
+        };
+        const initial = tabsEl.querySelector('.naowee-tab--selected');
+        if (initial) requestAnimationFrame(() => positionIndicator(initial));
+        tabsEl.querySelectorAll('.naowee-tab').forEach(tab => {
+          tab.addEventListener('click', () => {
+            const key = tab.dataset.tab;
+            tabsEl.querySelectorAll('.naowee-tab').forEach(t => t.classList.toggle('naowee-tab--selected', t === tab));
+            pageContent.querySelectorAll('.proj-tab-panel').forEach(pn => pn.hidden = pn.dataset.panel !== key);
+            positionIndicator(tab);
+          });
+        });
+      }
+
+      /* Bind del naowee-checkbox priorizado: input nativo + clase visual del label */
+      const prioCheck = document.querySelector('input[name="prioCheck"]');
+      const prioLabel = prioCheck?.closest('.naowee-checkbox');
+      if (prioCheck) {
+        prioCheck.addEventListener('change', e => {
+          prioLabel?.classList.toggle('naowee-checkbox--checked', e.target.checked);
+          ProjectData.setProyecto(p.idUnico, x => {
+            x.priorizado = e.target.checked;
+            x.historial = x.historial || [];
+            x.historial.push({ ts: new Date().toISOString(), actor: 'revisor', evento: e.target.checked ? 'Marcado como priorizado' : 'Desmarcado priorizado' });
+          });
+          p.priorizado = e.target.checked;
+          toast({
+            variant: e.target.checked ? 'positive' : 'informative',
+            title: e.target.checked ? 'Priorizado' : 'Sin prioridad',
+            message: e.target.checked ? 'El proyecto fue marcado como priorizado.' : 'Se removió la marca de priorización.'
+          });
+        });
+      }
+
+      /* Bind de los naowee-dropdown (Categoría / Tipo) */
+      const obsForm = document.getElementById('obsForm');
+      if (obsForm) bindDropdowns(obsForm);
+
+      /* Decisión: favorable | devolver | rechazar */
+      let pendingAction = null;
+      const obsBlock = document.getElementById('obsBlock');
+      const obsTitle = document.getElementById('obsTitle');
+
+      document.querySelectorAll('[data-action]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          if (action === 'favorable') {
+            if (!confirm('¿Marcar postulación como FAVORABLE? Se activará la ficha de proyecto y la etapa documental.')) return;
+            ProjectData.setProyecto(p.idUnico, x => {
+              x.fechaFavorable = new Date().toISOString();
+              x.historial = x.historial || [];
+              x.historial.push({ ts: new Date().toISOString(), actor: 'revisor', evento: 'Postulación marcada como favorable', estado: 'favorable' });
+              x.historial.push({ ts: new Date().toISOString(), actor: 'sistema', evento: 'Repositorio documental activado · Etapa documental iniciada', estado: 'etapa_documental' });
+              x.estado = 'etapa_documental';
+            });
+            ProjectData.pushNotificacion({ perfil: 'municipio', tipo: 'favorable', titulo: '¡Postulación favorable!', detalle: `${p.idUnico} · Tu proyecto pasó a Etapa Documental` });
+            toast({ variant: 'positive', title: 'Postulación favorable', message: 'El proyecto fue activado y pasó a etapa documental.' });
+            setTimeout(() => { window.location.href = 'bandeja.html'; }, 800);
+            return;
+          }
+          pendingAction = action;
+          obsTitle.textContent = action === 'devolver' ? 'Observaciones para subsanación' : 'Motivo del rechazo';
+          obsBlock.classList.add('is-open');
+          obsBlock.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        });
+      });
+
+      document.getElementById('cancelObs')?.addEventListener('click', () => {
+        obsBlock.classList.remove('is-open');
+        pendingAction = null;
+      });
+
+      document.getElementById('confirmAction')?.addEventListener('click', () => {
+        const fd = new FormData(obsForm);
+        const detalle = (fd.get('obsTexto') || '').toString().trim();
+        if (detalle.length < 20) {
+          toast({ variant: 'caution', title: 'Detalle requerido', message: 'La observación debe tener al menos 20 caracteres.' });
+          return;
+        }
+        const area = fd.get('obsArea') || 'Postulación';
+        const tipo = fd.get('obsTipo') || 'Falta documento';
+
+        ProjectData.setProyecto(p.idUnico, x => {
+          x.historial = x.historial || [];
+          if (pendingAction === 'devolver') {
+            x.estado = 'devuelta_subsanacion';
+            x.fechaDevolucion = new Date().toISOString();
+            x.observaciones = x.observaciones || [];
+            x.observaciones.push({ ts: new Date().toISOString(), autor: 'revisor', area, tipo, detalle });
+            x.historial.push({ ts: new Date().toISOString(), actor: 'revisor', evento: `Devuelta a subsanación · ${tipo}: ${detalle.substring(0, 60)}…`, estado: 'devuelta_subsanacion' });
+          } else if (pendingAction === 'rechazar') {
+            x.estado = 'rechazada';
+            x.historial.push({ ts: new Date().toISOString(), actor: 'revisor', evento: `Postulación rechazada · ${detalle.substring(0, 80)}`, estado: 'rechazada' });
+          }
+        });
+        ProjectData.pushNotificacion({
+          perfil: 'municipio',
+          tipo: pendingAction === 'devolver' ? 'subsanacion' : 'rechazo',
+          titulo: pendingAction === 'devolver' ? 'Postulación devuelta a subsanación' : 'Postulación rechazada',
+          detalle: `${p.idUnico} · ${tipo}`
+        });
+        toast({
+          variant: pendingAction === 'devolver' ? 'caution' : 'negative',
+          title: pendingAction === 'devolver' ? 'Devuelta a subsanación' : 'Postulación rechazada',
+          message: 'El municipio recibirá la notificación con el detalle.'
+        });
+        setTimeout(() => { window.location.href = 'bandeja.html'; }, 800);
+      });
+    }
+
+    renderPage();
+  }
+</script>
+</body>
+</html>

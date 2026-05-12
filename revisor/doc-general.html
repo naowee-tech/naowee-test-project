@@ -1,0 +1,617 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Documentación general · Revisor</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
+<link rel="stylesheet" href="../shared/shell.css">
+<link rel="stylesheet" href="../shared/pages.css?v=20260512m">
+<style>
+  /* ─── Bloque card: header con progreso + items en grid limpio ─── */
+  .dg-bloque {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); overflow: hidden;
+    margin-bottom: 16px;
+  }
+  .dg-bloque__head {
+    padding: 16px 22px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    background: linear-gradient(180deg, #fafbff 0%, var(--surface) 100%);
+  }
+  .dg-bloque__title {
+    display: flex; align-items: center; gap: 10px;
+    font-size: 14px; font-weight: 700; color: var(--text-primary);
+  }
+  .dg-bloque__num {
+    width: 24px; height: 24px; border-radius: 50%;
+    background: var(--accent); color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+  }
+  .dg-bloque__progress {
+    display: flex; align-items: center; gap: 10px; min-width: 200px;
+  }
+  .dg-bloque__progress-bar {
+    flex: 1; height: 6px; background: var(--border); border-radius: 99px; overflow: hidden;
+  }
+  .dg-bloque__progress-bar > span {
+    display: block; height: 100%; background: var(--green); border-radius: 99px;
+    transition: width .35s cubic-bezier(.4,0,.2,1);
+  }
+  .dg-bloque__progress-text {
+    font-size: 12px; font-weight: 600; color: var(--text-secondary);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+
+  .dg-item {
+    display: grid; grid-template-columns: 36px 1fr auto;
+    gap: 16px; align-items: center;
+    padding: 14px 22px;
+    border-bottom: 1px solid var(--border);
+    transition: background .15s;
+  }
+  .dg-item:last-child { border-bottom: 0; }
+  .dg-item:hover { background: #fafbff; }
+  .dg-item__num {
+    width: 28px; height: 28px; border-radius: 50%;
+    background: var(--bg, #f5f6fa); color: var(--text-secondary);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 12px; font-weight: 700;
+    transition: background .15s, color .15s;
+  }
+  .dg-item.is-cumple .dg-item__num { background: var(--green-bg); color: var(--green); }
+  .dg-item.is-nocumple .dg-item__num { background: var(--red-bg); color: #c01818; }
+  .dg-item.is-na .dg-item__num { background: var(--blue-bg); color: var(--blue-info); }
+  .dg-item__main { min-width: 0; }
+  .dg-item__text { font-size: 13.5px; line-height: 1.45; color: var(--text-primary); }
+  .dg-item__ref {
+    font-size: 11.5px; color: var(--text-secondary); margin-top: 4px;
+    display: inline-flex; align-items: center; gap: 4px;
+    font-family: 'JetBrains Mono', ui-monospace, monospace;
+  }
+
+  /* Segmented toggle: Cumple / No cumple / N/A */
+  .dg-toggle {
+    display: inline-flex; gap: 0;
+    border: 1px solid var(--border-dark); border-radius: var(--radius-md);
+    overflow: hidden; background: #fff;
+  }
+  .dg-toggle__btn {
+    padding: 7px 12px; min-width: 76px;
+    font-family: inherit; font-size: 12px; font-weight: 600;
+    background: #fff; color: var(--text-secondary);
+    border: 0; border-right: 1px solid var(--border);
+    cursor: pointer; transition: all .12s;
+    display: inline-flex; align-items: center; gap: 6px; justify-content: center;
+  }
+  .dg-toggle__btn:last-child { border-right: 0; }
+  .dg-toggle__btn:hover { background: var(--bg, #f5f6fa); color: var(--text-primary); }
+  .dg-toggle__btn.is-active--cumple { background: var(--green); color: #fff; border-color: var(--green); }
+  .dg-toggle__btn.is-active--nocumple { background: #c01818; color: #fff; border-color: #c01818; }
+  .dg-toggle__btn.is-active--na { background: var(--blue-info); color: #fff; border-color: var(--blue-info); }
+  .dg-toggle__btn svg { width: 12px; height: 12px; flex-shrink: 0; }
+
+  /* Sticky bottom summary */
+  .dg-summary {
+    position: sticky; bottom: 0; z-index: 5;
+    background: var(--surface); border-top: 1px solid var(--border);
+    border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+    padding: 14px 22px;
+    display: flex; align-items: center; justify-content: space-between; gap: 14px;
+    box-shadow: 0 -8px 20px -8px rgba(15, 17, 35, 0.08);
+  }
+  .dg-summary__stats {
+    display: flex; gap: 18px; font-size: 13px; color: var(--text-secondary);
+  }
+  .dg-summary__stat strong {
+    color: var(--text-primary); font-weight: 700;
+    font-variant-numeric: tabular-nums;
+  }
+  .dg-summary__actions { display: flex; gap: 10px; }
+
+  /* CTAs semánticos del summary con elevation tokens globales */
+  .btn-aprobar-doc {
+    background: #15803d !important; color: #fff !important; border-color: #15803d !important;
+    display: inline-flex; align-items: center; gap: 6px;
+    box-shadow: var(--shadow-green-cta);
+    transition: background .15s, border-color .15s, box-shadow .15s, transform .12s;
+  }
+  .btn-aprobar-doc:hover:not(:disabled) {
+    background: #166f30 !important; border-color: #166f30 !important;
+    box-shadow: var(--shadow-green-cta-hover);
+    transform: translateY(-1px);
+  }
+  .btn-devolver-doc {
+    background: var(--accent) !important; color: #fff !important; border-color: var(--accent) !important;
+    box-shadow: var(--shadow-accent-cta);
+    transition: background .15s, border-color .15s, box-shadow .15s, transform .12s;
+  }
+  .btn-devolver-doc:hover:not(:disabled) {
+    background: #b8350a !important; border-color: #b8350a !important;
+    transform: translateY(-1px);
+  }
+  /* Disabled state: sin elevation, sin transform — el disabled gris del DS toma el control */
+  .btn-aprobar-doc:disabled, .btn-devolver-doc:disabled {
+    box-shadow: none !important;
+    transform: none !important;
+  }
+  /* Disabled del DS oficial: gray-500 sobre gray-50, no tinted del color semántico */
+  .btn-aprobar-doc:disabled, .btn-devolver-doc:disabled {
+    background: var(--naowee-color-surface-disabled, #f5f6fa) !important;
+    color: var(--naowee-color-text-disabled, #9C9EBF) !important;
+    border-color: var(--naowee-color-border-disabled, #e7e9f3) !important;
+    cursor: not-allowed;
+  }
+  .btn-aprobar-doc:disabled svg, .btn-devolver-doc:disabled svg {
+    color: var(--naowee-color-icon-disabled, #9C9EBF) !important;
+    stroke: var(--naowee-color-icon-disabled, #9C9EBF) !important;
+  }
+
+  /* Read-only pill (cuando docsGeneral ya está aprobada) */
+  .dg-readonly-pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 5px 12px; border-radius: var(--radius-full);
+    font-size: 12px; font-weight: 700;
+  }
+  .dg-readonly-pill svg { width: 13px; height: 13px; }
+  .dg-readonly-pill--cumple { background: var(--green-bg); color: var(--green); }
+  .dg-readonly-pill--nocumple { background: var(--red-bg); color: #c01818; }
+  .dg-readonly-pill--na { background: var(--blue-bg); color: var(--blue-info); }
+  .dg-readonly-pill--empty { background: #f5f6fa; color: var(--text-secondary); }
+
+  /* Hero del proyecto en detalle */
+  .dg-hero {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: var(--radius-lg); padding: 18px 22px;
+    display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    margin-bottom: 18px;
+  }
+  .dg-hero__main { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+  .dg-hero__rad { font-size: 11.5px; font-weight: 600; letter-spacing: .35px; color: var(--text-secondary); text-transform: uppercase; }
+  .dg-hero__title { font-size: 17px; font-weight: 700; color: var(--text-primary); line-height: 1.3; }
+  .dg-hero__meta { font-size: 12.5px; color: var(--text-secondary); margin-top: 2px; }
+  .dg-hero__amount { font-size: 18px; font-weight: 700; color: var(--green); white-space: nowrap; }
+</style>
+</head>
+<body>
+<div class="shell">
+  <div id="sidebarRoot"></div>
+  <div class="main">
+    <header class="top-header" id="topHeader"></header>
+    <div class="page" id="pageContent"></div>
+  </div>
+</div>
+<div id="demoRoleSwitcherRoot"></div>
+
+<script type="module">
+  import ProjectData from '../shared/data.js';
+  import { mountShell } from '../shared/shell.js?v=20260511g';
+  import { formatoMoneda, fechaCorta } from '../shared/states.js';
+  import { toast } from '../shared/toast.js';
+
+  ProjectData.setPerfil('revisor');
+  mountShell({ activeId: 'doc-general' });
+
+  const proyectos = ProjectData.getProyectos(p => p.estado === 'etapa_documental' && p.docsGeneral);
+  const id = new URLSearchParams(location.search).get('id');
+  const p = id ? ProjectData.getProyecto(id) : null;
+  const pageContent = document.getElementById('pageContent');
+
+  const ICONS = {
+    back: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>',
+    search: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>',
+    close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    check: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>',
+    x:     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>',
+    flag:  '<svg viewBox="0 0 16 16" fill="currentColor"><path d="M3 1.5a.5.5 0 0 1 .5-.5h9.7a.5.5 0 0 1 .42.78L11.5 5l2.12 3.22a.5.5 0 0 1-.42.78H4v6.5a.5.5 0 0 1-1 0z"/></svg>'
+  };
+
+  /* Checklist Bloque 1+2 (Res. 933 de 2024) */
+  const CHECKLIST = [
+    { id: 'b1', titulo: 'Requisitos básicos indispensables', items: [
+      { n: 1, item: 'Carta de intención firmada por el representante legal y vigente.', ref: 'Res. 933 Art. 1.1.1' },
+      { n: 2, item: 'Estudio de títulos del predio suscrito por dependencia competente.', ref: 'Res. 933 Art. 1.2.1' },
+      { n: 3, item: 'Título adquisitivo del inmueble (escritura pública o equivalente).', ref: 'Res. 933 Art. 1.2.2' },
+      { n: 4, item: 'Certificado de tradición y libertad expedido dentro de los 30 días previos.', ref: 'Res. 933 Art. 1.2.3' },
+      { n: 5, item: 'Plano catastral del predio.', ref: 'Res. 933 Art. 1.2.4' },
+      { n: 6, item: 'Certificado de uso del suelo del POT/EOT/PBOT vigente.', ref: 'Res. 933 Art. 1.2.5' },
+      { n: 7, item: 'Concepto de Curaduría / licencia urbanística (cuando aplique).', ref: 'Res. 933 Art. 1.2.6' },
+      { n: 8, item: 'Plano de zonificación de amenazas y riesgos naturales.', ref: 'Res. 933 Art. 1.2.7' },
+      { n: 9, item: 'Disponibilidad de servicios públicos (acueducto, alcantarillado, energía).', ref: 'Res. 933 Art. 1.2.8' }
+    ]},
+    { id: 'b2', titulo: 'Documentación general complementaria', items: [
+      { n: 10, item: 'Certificación de no afectación ambiental (cuando aplique).', ref: 'Res. 933 Art. 2.1.1' },
+      { n: 11, item: 'Documento de análisis del proyecto (necesidad, alcance, sostenibilidad).', ref: 'Res. 933 Art. 2.2.1' },
+      { n: 12, item: 'Ficha MGA con código BPIN.', ref: 'Res. 933 Art. 2.3.1' },
+      { n: 13, item: 'Certificación del Comité Municipal del Deporte.', ref: 'Res. 933 Art. 2.4.1' },
+      { n: 14, item: 'Concepto de la Secretaría / Ente Deportivo Departamental.', ref: 'Res. 933 Art. 2.4.2' }
+    ]}
+  ];
+
+  /* ════════════════════════════════════════════════════════════════
+     LISTA DE PROYECTOS (default, sin ?id)
+     ════════════════════════════════════════════════════════════════ */
+  if (!p) {
+    if (proyectos.length === 0) {
+      pageContent.innerHTML = `
+        <div class="page-fade-in">
+          <div class="naowee-page-header naowee-page-header--centered">
+            <div class="naowee-page-header__main">
+              <h1>Documentación general</h1>
+              <p>Revisión consolidada de la documentación general por proyecto, conforme a la Resolución 933 de 2024.</p>
+            </div>
+          </div>
+          <div class="naowee-empty-state">
+            <div class="naowee-empty-state__title">Sin proyectos por revisar</div>
+            <div class="naowee-empty-state__msg">No hay proyectos en etapa documental que requieran revisión general en este momento.</div>
+          </div>
+        </div>
+      `;
+    } else {
+      renderList();
+    }
+  } else {
+    renderDetail();
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     LIST: tabla con searchbox + estado del checklist por proyecto
+     ════════════════════════════════════════════════════════════════ */
+  function renderList() {
+    pageContent.innerHTML = `
+      <div class="page-fade-in">
+        <div class="naowee-page-header naowee-page-header--centered">
+          <div class="naowee-page-header__main">
+            <h1>Documentación general</h1>
+            <p>Selecciona un proyecto para revisar su checklist consolidado de documentación general (Resolución 933 de 2024).</p>
+          </div>
+        </div>
+
+        <div class="naowee-table-card">
+          <div class="naowee-table-card__toolbar">
+            <div class="naowee-table-card__toolbar-left">
+              <div class="naowee-searchbox naowee-searchbox--medium" id="searchbox" style="width:340px">
+                <div class="naowee-searchbox__input-wrap">
+                  <span class="naowee-searchbox__icon">${ICONS.search}</span>
+                  <input type="text" class="naowee-searchbox__input" id="searchInput" placeholder="Buscar radicado, proyecto o municipio">
+                  <button type="button" class="naowee-searchbox__clear" id="searchClear" aria-label="Limpiar búsqueda">${ICONS.close}</button>
+                </div>
+              </div>
+            </div>
+          </div>
+          <div class="naowee-table-card__table-wrap">
+            <table class="naowee-table--in-card">
+              <thead>
+                <tr>
+                  <th>Radicado</th>
+                  <th>Proyecto</th>
+                  <th>Municipio</th>
+                  <th class="numeric">Presupuesto</th>
+                  <th class="numeric">Avance documental</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody id="tbody">
+                ${proyectos.map(pr => {
+                  const dg = pr.docsGeneral || {};
+                  const total = CHECKLIST.reduce((s, b) => s + b.items.length, 0);
+                  const done = Object.keys(dg.checklist || {}).filter(k => ['cumple','nocumple','na'].includes(dg.checklist[k])).length;
+                  const pct = Math.round((done / total) * 100);
+                  const aprobado = dg.estadoRevision === 'aprobado';
+                  const badgeColor = aprobado ? 'positive' : (done > 0 ? 'caution' : 'neutral');
+                  const badgeLabel = aprobado ? 'Aprobada' : (done > 0 ? 'En revisión' : 'Pendiente');
+                  return `
+                    <tr data-search="${(pr.radicado+' '+pr.nombre+' '+pr.municipio).toLowerCase()}" onclick="location.href='doc-general.html?id=${pr.idUnico}'">
+                      <td class="naowee-table__cell-muted" style="font-weight:500;font-size:12px;letter-spacing:.2px;white-space:nowrap;color:var(--text-secondary)">
+                        <span class="rad-cell">
+                          ${pr.priorizado
+                            ? `<span class="prio-flag" title="Priorizado">${ICONS.flag}</span>`
+                            : `<span class="prio-flag prio-flag--empty" aria-hidden="true"></span>`}
+                          ${(pr.radicado || '—').split('-CONV-')[0]}
+                        </span>
+                      </td>
+                      <td class="naowee-table__cell-name proj-name-cell">
+                        <div class="proj-name-cell__title" title="${pr.nombre}">${pr.nombre}</div>
+                      </td>
+                      <td>${pr.municipio}<div class="naowee-table__cell-muted" style="font-size:11.5px;margin-top:2px">${pr.departamento || ''}</div></td>
+                      <td class="numeric" style="font-weight:600;white-space:nowrap">${formatoMoneda(pr.presupuesto)}</td>
+                      <td class="numeric">
+                        <div style="display:inline-flex;align-items:center;gap:8px;min-width:120px">
+                          <div style="flex:1;height:6px;background:var(--border);border-radius:99px;overflow:hidden">
+                            <span style="display:block;height:100%;width:${pct}%;background:${aprobado ? 'var(--green)' : pct > 0 ? 'var(--accent)' : 'var(--border-dark)'}"></span>
+                          </div>
+                          <span style="font-size:11.5px;font-weight:600;color:var(--text-secondary);min-width:60px;text-align:right">${done}/${total}</span>
+                        </div>
+                      </td>
+                      <td><span class="naowee-badge naowee-badge--${badgeColor} naowee-badge--quiet">${badgeLabel}</span></td>
+                    </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+            <div class="table-empty-state" id="emptyState" hidden>
+              <div class="table-empty-state__icon">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+              </div>
+              <div class="table-empty-state__title">Sin resultados</div>
+              <div class="table-empty-state__msg">No encontramos proyectos que coincidan con tu búsqueda.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    /* Search */
+    const searchBoxEl = document.getElementById('searchbox');
+    const searchInputEl = document.getElementById('searchInput');
+    function applySearch() {
+      const q = searchInputEl.value.trim().toLowerCase();
+      let visible = 0;
+      document.querySelectorAll('#tbody tr').forEach(tr => {
+        const show = !q || tr.dataset.search.includes(q);
+        tr.style.display = show ? '' : 'none';
+        if (show) visible++;
+      });
+      const emptyEl = document.getElementById('emptyState');
+      const tbodyEl = document.getElementById('tbody');
+      if (visible === 0 && q) { emptyEl.hidden = false; tbodyEl.style.visibility = 'hidden'; }
+      else { emptyEl.hidden = true; tbodyEl.style.visibility = ''; }
+    }
+    searchInputEl.addEventListener('input', () => {
+      searchBoxEl.classList.toggle('naowee-searchbox--has-value', !!searchInputEl.value);
+      applySearch();
+    });
+    document.getElementById('searchClear').addEventListener('click', () => {
+      searchInputEl.value = '';
+      searchBoxEl.classList.remove('naowee-searchbox--has-value');
+      applySearch();
+    });
+  }
+
+  /* ════════════════════════════════════════════════════════════════
+     DETAIL: hero del proyecto + bloques refinados + sticky summary
+     ════════════════════════════════════════════════════════════════ */
+  function renderDetail() {
+    const dg = p.docsGeneral || {};
+    const checklist = dg.checklist || {};
+    const totalItems = CHECKLIST.reduce((s, b) => s + b.items.length, 0);
+    const aprobado = dg.estadoRevision === 'aprobado';
+
+    pageContent.innerHTML = `
+      <div class="page-fade-in">
+        <a class="naowee-btn naowee-btn--mute naowee-btn--small back-btn" href="doc-general.html" style="margin-bottom:14px">${ICONS.back}Volver al listado</a>
+
+        <div class="naowee-page-header naowee-page-header--centered">
+          <div class="naowee-page-header__main">
+            <h1>Revisión documental general</h1>
+            <p>Marca cada ítem como Cumple, No cumple o No aplica. Cuando todos estén verificados podrás aprobar la documentación.</p>
+          </div>
+        </div>
+
+        <!-- Hero canónico project-hero (con banderín + paddings consistentes) -->
+        <div class="project-hero ${p.priorizado ? 'project-hero--priorizado' : ''}">
+          ${p.priorizado ? `
+            <span class="prio-ribbon" tabindex="0" role="img" aria-label="Proyecto priorizado por el Ministerio">
+              <svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3 1.5a.5.5 0 0 1 .5-.5h9.7a.5.5 0 0 1 .42.78L11.5 5l2.12 3.22a.5.5 0 0 1-.42.78H4v6.5a.5.5 0 0 1-1 0z"/></svg>
+              <span class="prio-ribbon__tooltip" role="tooltip">Priorizado por el Ministerio</span>
+            </span>
+          ` : ''}
+          <div class="project-hero__top">
+            <div class="project-hero__left">
+              <div class="project-hero__rad">${(p.radicado || '—').split('-CONV-')[0]}</div>
+              <h1 class="project-hero__title" style="font-size:20px">${p.nombre}</h1>
+              <div class="project-hero__meta">
+                <span>${p.municipio}${p.departamento ? `, ${p.departamento}` : ''}</span>
+                <span>${p.formuladora?.nombre || ''}</span>
+                <span>${p.tipoSolicitud || ''}${p.fase ? ` · ${p.fase}` : ''}</span>
+              </div>
+              <div class="project-hero__badges">
+                <span class="naowee-badge naowee-badge--brand naowee-badge--quiet"><span class="naowee-badge__dot"></span>Etapa documental</span>
+                ${aprobado ? '<span class="naowee-badge naowee-badge--positive naowee-badge--quiet"><span class="naowee-badge__dot"></span>Documentación general aprobada</span>' : ''}
+              </div>
+            </div>
+            <div class="project-hero__right">
+              <div class="project-hero__label">Presupuesto del proyecto</div>
+              <div class="project-hero__amount">${formatoMoneda(p.presupuesto)}</div>
+              <div class="project-hero__breakdown">Solicitado: ${formatoMoneda(p.montoSolicitado)} · Contrapartida: ${formatoMoneda(p.contrapartida)}</div>
+            </div>
+          </div>
+        </div>
+
+        ${aprobado ? `
+          <div class="naowee-message naowee-message--positive" role="status" style="margin-bottom:18px">
+            <div class="naowee-message__header">
+              <span class="naowee-message__icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <span class="naowee-message__title">Documentación general aprobada</span>
+            </div>
+            <div class="naowee-message__text">Aprobada el ${fechaCorta(dg.aprobadoEn)}. El proyecto está listo para el cierre del concepto cuando todas las áreas técnicas también estén aprobadas.</div>
+          </div>
+        ` : ''}
+
+        ${CHECKLIST.map((bloque, i) => {
+          const done = bloque.items.filter(it => ['cumple','nocumple','na'].includes(checklist[it.n])).length;
+          const pct = Math.round((done / bloque.items.length) * 100);
+          return `
+            <section class="dg-bloque">
+              <div class="dg-bloque__head">
+                <div class="dg-bloque__title">
+                  <span class="dg-bloque__num">${i + 1}</span>
+                  <span>${bloque.titulo}</span>
+                </div>
+                <div class="dg-bloque__progress">
+                  <div class="dg-bloque__progress-bar"><span style="width:${pct}%"></span></div>
+                  <span class="dg-bloque__progress-text">${done} de ${bloque.items.length} verificados</span>
+                </div>
+              </div>
+              <div>
+                ${bloque.items.map(it => {
+                  const sel = checklist[it.n];
+                  const itemClass = sel === 'cumple' ? 'is-cumple' : sel === 'nocumple' ? 'is-nocumple' : sel === 'na' ? 'is-na' : '';
+                  if (aprobado) {
+                    /* Read-only: pill inline en lugar de toggle editable */
+                    const pill = sel === 'cumple'   ? `<span class="dg-readonly-pill dg-readonly-pill--cumple">${ICONS.check} Cumple</span>`
+                             :  sel === 'nocumple' ? `<span class="dg-readonly-pill dg-readonly-pill--nocumple">${ICONS.x} No cumple</span>`
+                             :  sel === 'na'       ? `<span class="dg-readonly-pill dg-readonly-pill--na">N/A</span>`
+                             :                       `<span class="dg-readonly-pill dg-readonly-pill--empty">Sin verificar</span>`;
+                    return `
+                      <div class="dg-item ${itemClass}" data-item="${it.n}">
+                        <div class="dg-item__num">${it.n}</div>
+                        <div class="dg-item__main">
+                          <div class="dg-item__text">${it.item}</div>
+                          <div class="dg-item__ref">${it.ref}</div>
+                        </div>
+                        ${pill}
+                      </div>`;
+                  }
+                  return `
+                    <div class="dg-item ${itemClass}" data-item="${it.n}">
+                      <div class="dg-item__num">${it.n}</div>
+                      <div class="dg-item__main">
+                        <div class="dg-item__text">${it.item}</div>
+                        <div class="dg-item__ref">${it.ref}</div>
+                      </div>
+                      <div class="dg-toggle" role="group">
+                        <button type="button" class="dg-toggle__btn ${sel === 'cumple' ? 'is-active--cumple' : ''}" data-r="cumple">${ICONS.check} Cumple</button>
+                        <button type="button" class="dg-toggle__btn ${sel === 'nocumple' ? 'is-active--nocumple' : ''}" data-r="nocumple">${ICONS.x} No cumple</button>
+                        <button type="button" class="dg-toggle__btn ${sel === 'na' ? 'is-active--na' : ''}" data-r="na">N/A</button>
+                      </div>
+                    </div>`;
+                }).join('')}
+              </div>
+            </section>
+          `;
+        }).join('')}
+
+        <div class="naowee-card" style="padding:0">
+          <div class="dg-summary" style="border-top:0">
+            <div class="dg-summary__stats">
+              <span class="dg-summary__stat"><strong id="summaryDone">0</strong> / ${totalItems} verificados</span>
+              <span class="dg-summary__stat" style="color:var(--green)"><strong id="summaryCumple">0</strong> cumple</span>
+              <span class="dg-summary__stat" style="color:#c01818"><strong id="summaryNocumple">0</strong> no cumple</span>
+              <span class="dg-summary__stat" style="color:var(--blue-info)"><strong id="summaryNa">0</strong> N/A</span>
+            </div>
+            ${aprobado ? '' : `
+              <div class="dg-summary__actions">
+                <button type="button" class="naowee-btn btn-devolver-doc" id="btnDevolver">Devolver con observaciones</button>
+                <button type="button" class="naowee-btn btn-aprobar-doc" id="btnAprobar">${ICONS.check} Aprobar documentación general</button>
+              </div>
+            `}
+          </div>
+        </div>
+      </div>
+    `;
+
+    /* Estado inicial del checklist en memoria */
+    const state = { ...checklist };
+
+    function updateSummary() {
+      const all = Object.values(state).filter(v => ['cumple','nocumple','na'].includes(v));
+      const done = all.length;
+      const cumple = all.filter(v => v === 'cumple').length;
+      const nocumple = all.filter(v => v === 'nocumple').length;
+      const na = all.filter(v => v === 'na').length;
+      document.getElementById('summaryDone').textContent = done;
+      document.getElementById('summaryCumple').textContent = cumple;
+      document.getElementById('summaryNocumple').textContent = nocumple;
+      document.getElementById('summaryNa').textContent = na;
+
+      const btnAprobar = document.getElementById('btnAprobar');
+      const btnDevolver = document.getElementById('btnDevolver');
+      /* En aprobado los botones no existen (se omiten en el render), nada que actualizar */
+      if (!btnAprobar || !btnDevolver) return;
+      const allDone = done === totalItems;
+      /* Aprobar: todos verificados y 0 "no cumple" */
+      btnAprobar.disabled = !allDone || nocumple > 0;
+      btnAprobar.title = !allDone
+        ? `Faltan ${totalItems - done} ítem${totalItems - done === 1 ? '' : 's'} por verificar`
+        : nocumple > 0
+        ? `No se puede aprobar: ${nocumple} ítem${nocumple === 1 ? '' : 's'} en "No cumple" requiere${nocumple === 1 ? '' : 'n'} devolución`
+        : '';
+      /* Devolver: al menos 1 "no cumple" */
+      btnDevolver.disabled = nocumple === 0;
+      btnDevolver.title = nocumple === 0
+        ? 'No hay observaciones para devolver — marca al menos un ítem como "No cumple"'
+        : `Devolver con ${nocumple} ${nocumple === 1 ? 'observación' : 'observaciones'} al municipio`;
+    }
+    updateSummary();
+    /* Refresh progress bars per bloque */
+    function updateBloques() {
+      CHECKLIST.forEach((bl, i) => {
+        const bloqueEl = document.querySelectorAll('.dg-bloque')[i];
+        const done = bl.items.filter(it => ['cumple','nocumple','na'].includes(state[it.n])).length;
+        const pct = Math.round((done / bl.items.length) * 100);
+        bloqueEl.querySelector('.dg-bloque__progress-bar > span').style.width = pct + '%';
+        bloqueEl.querySelector('.dg-bloque__progress-text').textContent = `${done} de ${bl.items.length} verificados`;
+      });
+    }
+
+    /* Click en cada toggle — solo en modo editable */
+    if (!aprobado) document.querySelectorAll('.dg-item').forEach(itemEl => {
+      const n = itemEl.dataset.item;
+      itemEl.querySelectorAll('.dg-toggle__btn').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const r = btn.dataset.r;
+          /* Toggle off si ya está activo */
+          if (state[n] === r) {
+            delete state[n];
+            itemEl.classList.remove('is-cumple', 'is-nocumple', 'is-na');
+            btn.classList.remove('is-active--cumple', 'is-active--nocumple', 'is-active--na');
+          } else {
+            state[n] = r;
+            itemEl.classList.remove('is-cumple', 'is-nocumple', 'is-na');
+            itemEl.classList.add('is-' + r.replace('cumple', 'cumple').replace('nocumple', 'nocumple').replace('na', 'na'));
+            /* re-aplica clase correcta */
+            itemEl.classList.remove('is-cumple', 'is-nocumple', 'is-na');
+            itemEl.classList.add(r === 'cumple' ? 'is-cumple' : r === 'nocumple' ? 'is-nocumple' : 'is-na');
+            itemEl.querySelectorAll('.dg-toggle__btn').forEach(b => b.classList.remove('is-active--cumple', 'is-active--nocumple', 'is-active--na'));
+            btn.classList.add('is-active--' + r);
+          }
+          updateSummary();
+          updateBloques();
+        });
+      });
+    });
+
+    /* Aprobar — solo si todos verificados Y 0 "no cumple" (la lógica también está en el disabled) */
+    document.getElementById('btnAprobar')?.addEventListener('click', () => {
+      const all = Object.values(state).filter(v => ['cumple','nocumple','na'].includes(v));
+      const allDone = all.length === totalItems;
+      const noCumpleCount = all.filter(v => v === 'nocumple').length;
+      if (!allDone || noCumpleCount > 0) {
+        toast({ variant: 'caution', title: 'No se puede aprobar', message: !allDone ? 'Marca todos los ítems antes de aprobar.' : `Hay ${noCumpleCount} ítem(s) en "No cumple". La documentación debe devolverse.` });
+        return;
+      }
+      if (!confirm('¿Aprobar la documentación general?')) return;
+      ProjectData.setProyecto(p.idUnico, x => {
+        x.docsGeneral = x.docsGeneral || {};
+        x.docsGeneral.checklist = { ...state };
+        x.docsGeneral.estadoRevision = 'aprobado';
+        x.docsGeneral.aprobadoEn = new Date().toISOString();
+        x.historial = x.historial || [];
+        x.historial.push({ ts: new Date().toISOString(), actor: 'revisor', evento: 'Documentación general aprobada' });
+      });
+      toast({ variant: 'positive', title: 'Documentación general aprobada', message: 'El proyecto avanza en el ciclo de etapa documental.' });
+      setTimeout(() => { window.location.href = 'doc-general.html'; }, 800);
+    });
+
+    document.getElementById('btnDevolver')?.addEventListener('click', () => {
+      const noCumpleCount = Object.values(state).filter(v => v === 'nocumple').length;
+      if (noCumpleCount === 0) {
+        toast({ variant: 'caution', title: 'Sin ítems para devolver', message: 'Marca al menos un ítem como "No cumple" antes de devolver.' });
+        return;
+      }
+      ProjectData.setProyecto(p.idUnico, x => {
+        x.docsGeneral = x.docsGeneral || {};
+        x.docsGeneral.checklist = { ...state };
+        x.docsGeneral.estadoRevision = 'devuelto';
+        x.historial = x.historial || [];
+        x.historial.push({ ts: new Date().toISOString(), actor: 'revisor', evento: `Documentación general devuelta · ${noCumpleCount} ítem(s) no cumplen` });
+      });
+      toast({ variant: 'caution', title: 'Documentación devuelta', message: `${noCumpleCount} ítem(s) marcados como "No cumple" — el municipio debe subsanar.` });
+      setTimeout(() => { window.location.href = 'doc-general.html'; }, 800);
+    });
+  }
+</script>
+</body>
+</html>
