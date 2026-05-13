@@ -8,7 +8,7 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
 <link rel="stylesheet" href="../shared/shell.css">
 <link rel="stylesheet" href="../shared/wizard-page.css">
-<link rel="stylesheet" href="../shared/pages.css?v=20260513e">
+<link rel="stylesheet" href="../shared/pages.css?v=20260513i">
 <style>
   .layout-2col { align-items: stretch !important; }
 </style>
@@ -27,7 +27,7 @@
   import ProjectData from '../shared/data.js';
   import { mountShell } from '../shared/shell.js?v=20260513e';
   import { ESTADOS_POSTULACION, formatoMoneda, fechaCorta, diasRestantes } from '../shared/states.js';
-  import { openPostularModal } from '../shared/modal-postular.js?v=20260512m';
+  import { openPostularModal } from '../shared/modal-postular.js?v=20260513i';
   ProjectData.setPerfil('municipio');
   mountShell({ activeId: 'inicio' });
 
@@ -72,8 +72,9 @@
           </div>
         </div>
         <div class="greeting-row__actions">
-          <a class="naowee-btn naowee-btn--mute naowee-btn--large" href="convocatorias.html">${ICONS.cal} Ver convocatorias</a>
-          <button type="button" class="naowee-btn naowee-btn--loud naowee-btn--large" data-postular>${ICONS.plus} Postular proyecto</button>
+          <!-- "Postular proyecto" removido 13/05/2026 (Juanma): solo se postula desde
+               la card de cada convocatoria, no como acción global. -->
+          <a class="naowee-btn naowee-btn--loud naowee-btn--large" href="convocatorias.html">${ICONS.cal} Ver convocatorias</a>
         </div>
       </div>
 
@@ -135,8 +136,8 @@
             ${misProyectos.length === 0 ? `
               <div class="naowee-empty-state" style="padding:40px 20px">
                 <div class="naowee-empty-state__title">Sin proyectos aún</div>
-                <div class="naowee-empty-state__msg">Postula tu primer proyecto a una convocatoria abierta.</div>
-                <button type="button" class="naowee-btn naowee-btn--loud naowee-btn--small" data-postular style="margin-top:14px">Postular ahora</button>
+                <div class="naowee-empty-state__msg">Entra a una convocatoria abierta para postular tu primer proyecto.</div>
+                <a class="naowee-btn naowee-btn--loud naowee-btn--small" href="convocatorias.html" style="margin-top:14px">Ver convocatorias →</a>
               </div>
             ` : `
               <table class="dash-table">

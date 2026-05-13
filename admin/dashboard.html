@@ -9,30 +9,11 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
 <link rel="stylesheet" href="../shared/shell.css">
-<link rel="stylesheet" href="../shared/pages.css?v=20260513e">
+<link rel="stylesheet" href="../shared/pages.css?v=20260513i">
 
 <style>
-  /* ─── Estado distribution bars ─── */
-  .estado-list { padding: 14px 22px 20px; }
-  .estado-row {
-    display: grid; grid-template-columns: 200px 1fr 60px;
-    gap: 16px; align-items: center; padding: 10px 0;
-    font-size: 12.5px;
-  }
-  .estado-row__name {
-    font-weight: 600; color: var(--text-primary);
-    display: flex; align-items: center; gap: 8px;
-  }
-  .estado-row__dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-  .estado-row__bar { height: 8px; background: var(--grey-bg); border-radius: 99px; overflow: hidden; }
-  .estado-row__bar > span {
-    display: block; height: 100%; border-radius: 99px;
-    transition: width .6s cubic-bezier(.32,.72,0,1);
-  }
-  .estado-row__count {
-    text-align: right; font-weight: 700;
-    font-variant-numeric: tabular-nums; color: var(--text-primary);
-  }
+  /* CSS de .estado-row* removido 13/05/2026 — la sección "Distribución por
+     estado" del dashboard fue eliminada por petición de Juanma (acta dev). */
 
   /* Layout específico del dashboard: 2 columnas con alturas iguales */
   .layout-2col { align-items: stretch !important; }
@@ -54,7 +35,7 @@
   import ProjectData from '../shared/data.js';
   import { mountShell } from '../shared/shell.js?v=20260513e';
   import { ESTADOS_POSTULACION, formatoMoneda, formatoFecha } from '../shared/states.js';
-  import { openConvocatoriaModal } from '../shared/modal-convocatoria.js?v=20260512m';
+  import { openConvocatoriaModal } from '../shared/modal-convocatoria.js?v=20260513i';
 
   /* Asegurar perfil = admin si llegan desde la landing */
   ProjectData.setPerfil('admin');
@@ -89,20 +70,7 @@
 
   const recientes = proyectos.slice(0, 5);
 
-  /* Distribución por estado para el panel derecho */
-  const estadoDist = Object.entries(
-    proyectos.reduce((acc, p) => { acc[p.estado] = (acc[p.estado] || 0) + 1; return acc; }, {})
-  )
-    .map(([k, count]) => ({ k, count, def: ESTADOS_POSTULACION[k] || { label: k, color: 'gris' } }))
-    .sort((a, b) => b.count - a.count);
-  const estadoMax = Math.max(1, ...estadoDist.map(e => e.count));
-
-  /* Mapa de color → hex para barritas (mismos tokens del DS) */
-  const COLOR_HEX = {
-    positive: '#15803d', informative: '#1f78d1', caution: '#d74009',
-    negative: '#b42318', neutral: '#646587', brand: '#FF7500',
-    purple: '#7c3aed', gris: '#9c9ebf'
-  };
+  /* Distribución por estado removida 13/05/2026 (Juanma min 14:00). */
 
   /* ═══ Render ═══ */
   document.getElementById('pageContent').innerHTML = `
@@ -290,33 +258,9 @@
         </article>
       </div>
 
-      <!-- ═══ Distribución por estado ═══ -->
-      <article class="naowee-card panel-card" style="margin-bottom:24px">
-        <div class="panel-head">
-          <div>
-            <h3>Distribución por estado · ciclo de postulación</h3>
-            <div class="sub">Cantidad de proyectos en cada etapa del flujo</div>
-          </div>
-          <a href="proyectos.html" class="naowee-btn naowee-btn--mute naowee-btn--small">Listado completo</a>
-        </div>
-        <div class="estado-list">
-          ${estadoDist.map(({ count, def }) => {
-            const hex = COLOR_HEX[def.color] || COLOR_HEX.gris;
-            const pct = Math.round((count / estadoMax) * 100);
-            const bgHex = hex + '22'; // 13% alpha
-            return `
-              <div class="estado-row">
-                <div class="estado-row__name">
-                  <span class="naowee-badge naowee-badge--${def.color} naowee-badge--quiet">${def.label}</span>
-                </div>
-                <div class="estado-row__bar" style="background:${bgHex}">
-                  <span style="width:${pct}%;background:${hex}"></span>
-                </div>
-                <div class="estado-row__count">${count}</div>
-              </div>`;
-          }).join('')}
-        </div>
-      </article>
+      <!-- Distribución por estado removida 13/05/2026 (Juanma min 14:00):
+           "Esta pantalla yo la parte de abajo la quitaría. Ese gráfico que
+           hiciste de cuántos proyectos, eso lo quitaría." -->
 
     </div>
   `;
