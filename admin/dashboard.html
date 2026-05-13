@@ -52,7 +52,7 @@
 
 <script type="module">
   import ProjectData from '../shared/data.js';
-  import { mountShell } from '../shared/shell.js?v=20260512n';
+  import { mountShell } from '../shared/shell.js?v=20260513a';
   import { ESTADOS_POSTULACION, formatoMoneda, formatoFecha } from '../shared/states.js';
   import { openConvocatoriaModal } from '../shared/modal-convocatoria.js?v=20260512m';
 
@@ -138,6 +138,18 @@
           </button>
         </div>
       </div>
+
+      ${conConcepto > 0 ? `
+        <!-- Banner: proyectos listos para inversión (concepto favorable emitido) -->
+        <div class="naowee-message naowee-message--positive" role="status" style="margin-bottom:20px">
+          <div class="naowee-message__header">
+            <span class="naowee-message__icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M3.5 8.5l3 3 6-6" stroke="#fff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="naowee-message__title">${conConcepto} proyecto${conConcepto > 1 ? 's' : ''} listo${conConcepto > 1 ? 's' : ''} para activar inversión</span>
+          </div>
+          <div class="naowee-message__text">El equipo revisor emitió ${conConcepto > 1 ? 'sus conceptos' : 'su concepto'} favorable${conConcepto > 1 ? 's' : ''}. Revisa los proyectos y activa la inversión correspondiente.</div>
+          <a class="naowee-btn naowee-btn--loud naowee-btn--small naowee-message__action" href="inversion.html">Ver tabla de inversión →</a>
+        </div>
+      ` : ''}
 
       <!-- ═══ KPIs ═══ -->
       <div class="kpi-grid">
