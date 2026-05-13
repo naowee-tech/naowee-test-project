@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
 <link rel="stylesheet" href="../shared/shell.css">
-<link rel="stylesheet" href="../shared/pages.css?v=20260512n">
+<link rel="stylesheet" href="../shared/pages.css?v=20260512o">
 </head>
 <body>
 <div class="shell">
@@ -38,6 +38,42 @@
   const conceptosEmitidos = proyectos.filter(p => p.estado === 'concepto_favorable' || p.estado === 'en_inversion');
   const urgentes = enRevision.filter(p => diasRestantes(p.fechaInicioRevision || p.fechaPostulacion) <= 5);
 
+  /* Revisor activo del pool (modelo "todos ven, cada quien aprueba lo suyo"). */
+  const revisorActivo = ProjectData.getRevisorActivo();
+  const esGeneral = revisorActivo?.especialidades?.includes('general');
+
+  /* Mis áreas: todas las áreas (técnicas o doc-general) asignadas al revisor activo
+     en proyectos vigentes (etapa_documental). Cada item lleva proyecto + SLA. */
+  const misAreas = [];
+  if (revisorActivo) {
+    proyectos
+      .filter(p => ['etapa_documental','concepto_favorable'].includes(p.estado))
+      .forEach(p => {
+        if (esGeneral && p.docsGeneral) {
+          misAreas.push({
+            proyecto: p, areaId: 'general', nombre: 'Documentación general',
+            estado: p.docsGeneral.estadoRevision || (p.docsGeneral.revisor ? 'en_revision' : 'pendiente'),
+            fechaLimite: p.docsGeneral.fechaLimite
+          });
+        }
+        (p.docsTecnica?.areas || []).filter(a => a.revisorId === revisorActivo.id).forEach(a => {
+          misAreas.push({ proyecto: p, areaId: a.id, nombre: a.nombre, estado: a.estado, fechaLimite: a.fechaLimite });
+        });
+      });
+  }
+  const misPendientes = misAreas.filter(a => a.estado !== 'aprobado');
+  const misAprobadas = misAreas.filter(a => a.estado === 'aprobado');
+  /* Próximas a vencer (no aprobadas): orden ascendente por días restantes. */
+  const misProximas = misPendientes
+    .map(a => ({ ...a, dias: a.fechaLimite ? Math.ceil((new Date(a.fechaLimite) - new Date()) / 86400000) : 999 }))
+    .sort((x, y) => x.dias - y.dias)
+    .slice(0, 5);
+  const misCriticas = misPendientes.filter(a => {
+    if (!a.fechaLimite) return false;
+    const d = Math.ceil((new Date(a.fechaLimite) - new Date()) / 86400000);
+    return d <= 3;
+  }).length;
+
   const ICONS = {
     inbox: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M22 12h-6l-2 3h-4l-2-3H2"/><path d="M5.45 5.11L2 12v6a2 2 0 002 2h16a2 2 0 002-2v-6l-3.45-6.89A2 2 0 0016.76 4H7.24a2 2 0 00-1.79 1.11z"/></svg>',
     alert: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 8v5"/><circle cx="12" cy="12" r="9"/></svg>',
@@ -57,7 +93,9 @@
             <h1 class="greeting__title">${saludoBase}, ${primerNombre}</h1>
             <div class="convo-desc convo-desc--single-line" data-collapsed="true">
               <p class="convo-desc__text greeting__sub">
-                Tienes <strong>${enRevision.length} postulación${enRevision.length===1?'':'es'}</strong> en revisión y <strong>${pendienteDocG.length}</strong> en etapa documental. Resumen de las postulaciones y etapas bajo tu responsabilidad este bienio.
+                ${revisorActivo
+                  ? `Tienes <strong>${misPendientes.length} área${misPendientes.length===1?'':'s'}</strong> pendiente${misPendientes.length===1?'':'s'} de tu especialidad${misCriticas > 0 ? ` · <strong style="color:#b42318">${misCriticas} con SLA crítico (≤3 días)</strong>` : ''}. Tu equipo revisa <strong>${enRevision.length + pendienteDocG.length}</strong> postulaciones este bienio.`
+                  : `Tienes <strong>${enRevision.length} postulación${enRevision.length===1?'':'es'}</strong> en revisión y <strong>${pendienteDocG.length}</strong> en etapa documental.`}
               </p>
               <button type="button" class="convo-desc__toggle" hidden>
                 <span class="convo-desc__toggle-text">Ver más</span>
@@ -82,6 +120,42 @@
         </div>
       ` : ''}
 
+      ${revisorActivo ? `
+        <!-- ═══ Mi carga personal (área-céntrica) ═══
+             Modelo: el equipo revisor ve todos los proyectos pero cada miembro
+             aprueba SOLO sus áreas por especialidad. Estos KPIs son tuyos. -->
+        <div class="rev-mycarga">
+          <div class="rev-mycarga__head">
+            <div class="rev-mycarga__title-row">
+              <div class="ava-ring" style="width:38px;height:38px;background:${revisorActivo.color}22;color:${revisorActivo.color};font-size:13px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;border-radius:50%;flex-shrink:0">${revisorActivo.avatar}</div>
+              <div>
+                <div class="rev-mycarga__title">Tu carga · ${revisorActivo.especialidad}</div>
+                <div class="rev-mycarga__sub">Solo tú apruebas estas áreas. El resto del equipo revisa las suyas.</div>
+              </div>
+            </div>
+          </div>
+          <div class="rev-mycarga__kpis">
+            <div class="rev-mycarga__kpi">
+              <div class="rev-mycarga__kpi-val">${misPendientes.length}</div>
+              <div class="rev-mycarga__kpi-lbl">Áreas pendientes</div>
+            </div>
+            <div class="rev-mycarga__kpi">
+              <div class="rev-mycarga__kpi-val">${misAprobadas.length}</div>
+              <div class="rev-mycarga__kpi-lbl">Aprobadas (bienio)</div>
+            </div>
+            <div class="rev-mycarga__kpi ${misCriticas > 0 ? 'rev-mycarga__kpi--urgent' : ''}">
+              <div class="rev-mycarga__kpi-val">${misCriticas}</div>
+              <div class="rev-mycarga__kpi-lbl">SLA crítico (≤3d)</div>
+            </div>
+            <div class="rev-mycarga__kpi">
+              <div class="rev-mycarga__kpi-val">${new Set(misPendientes.map(a => a.proyecto.idUnico)).size}</div>
+              <div class="rev-mycarga__kpi-lbl">Proyectos activos</div>
+            </div>
+          </div>
+        </div>
+      ` : ''}
+
+      <div class="kpi-grid-section-title">Carga global del equipo revisor</div>
       <div class="kpi-grid">
         <div class="kpi-card">
           <div class="kpi-card__top">
@@ -126,11 +200,59 @@
         </div>
       </div>
 
+      ${revisorActivo && misProximas.length > 0 ? `
+        <article class="naowee-card panel-card" style="height:auto;margin-top:20px">
+          <div class="panel-head">
+            <div>
+              <h3>Tus áreas próximas a vencer</h3>
+              <div class="sub">Tu especialidad · ordenadas por días restantes (SLA 15 días desde asignación)</div>
+            </div>
+            <a href="areas-tecnicas.html" class="naowee-btn naowee-btn--mute naowee-btn--small" onclick="event.preventDefault(); location.href='bandeja.html'">Ver bandeja</a>
+          </div>
+          <div class="panel-card__body" style="padding-bottom:14px">
+            <table class="dash-table">
+              <thead>
+                <tr>
+                  <th>Proyecto</th>
+                  <th>Área</th>
+                  <th>Municipio</th>
+                  <th class="numeric">SLA</th>
+                  <th>Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${misProximas.map(a => {
+                  const p = a.proyecto;
+                  const dias = a.dias;
+                  const cls = dias < 0 ? 'sla-pill--vencido' : dias <= 3 ? 'sla-pill--urgent' : dias <= 7 ? 'sla-pill--warn' : 'sla-pill--ok';
+                  const lbl = dias < 0 ? `Vencido ${Math.abs(dias)}d` : dias === 0 ? 'Vence hoy' : `${dias}d restantes`;
+                  const estLbl = a.estado === 'devuelto' ? 'Devuelta'
+                    : a.estado === 'en_revision' ? 'En revisión'
+                    : 'Pendiente';
+                  const estColor = a.estado === 'devuelto' ? 'caution'
+                    : a.estado === 'en_revision' ? 'informative'
+                    : 'neutral';
+                  const href = a.areaId === 'general' ? `doc-general.html?id=${p.idUnico}` : `revisar-area.html?id=${p.idUnico}&area=${a.areaId}`;
+                  return `
+                    <tr onclick="location.href='${href}'">
+                      <td class="name-cell"><div class="name-cell__inner"><span class="name-cell__title" title="${p.nombre}">${p.nombre}</span></div></td>
+                      <td>${a.nombre}</td>
+                      <td>${p.municipio}<div class="meta-line">${p.departamento || ''}</div></td>
+                      <td class="numeric"><span class="sla-pill ${cls}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${lbl}</span></td>
+                      <td><span class="naowee-badge naowee-badge--${estColor} naowee-badge--quiet">${estLbl}</span></td>
+                    </tr>`;
+                }).join('')}
+              </tbody>
+            </table>
+          </div>
+        </article>
+      ` : ''}
+
       <article class="naowee-card panel-card" style="height:auto;margin-top:20px">
         <div class="panel-head">
           <div>
-            <h3>Postulaciones a revisar</h3>
-            <div class="sub">Ordenadas por días restantes</div>
+            <h3>Postulaciones del equipo · en revisión</h3>
+            <div class="sub">Overview global del bienio · ordenadas por días restantes</div>
           </div>
           <a href="bandeja.html" class="naowee-btn naowee-btn--mute naowee-btn--small">Ver todas</a>
         </div>
