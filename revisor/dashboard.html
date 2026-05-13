@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
 <link rel="stylesheet" href="../shared/shell.css">
-<link rel="stylesheet" href="../shared/pages.css?v=20260513b">
+<link rel="stylesheet" href="../shared/pages.css?v=20260513c">
 </head>
 <body>
 <div class="shell">
@@ -216,7 +216,7 @@
                   <th>Proyecto</th>
                   <th>Área</th>
                   <th>Municipio</th>
-                  <th class="numeric">SLA</th>
+                  <th class="numeric">Plazo</th>
                   <th>Estado</th>
                 </tr>
               </thead>
@@ -224,7 +224,7 @@
                 ${misProximas.map(a => {
                   const p = a.proyecto;
                   const dias = a.dias;
-                  const cls = dias < 0 ? 'sla-pill--vencido' : dias <= 3 ? 'sla-pill--urgent' : dias <= 7 ? 'sla-pill--warn' : 'sla-pill--ok';
+                  const cls = dias < 0 ? 'plazo-inline--vencido' : dias <= 3 ? 'plazo-inline--urgent' : dias <= 7 ? 'plazo-inline--warn' : 'plazo-inline--ok';
                   const lbl = dias < 0 ? `Vencido ${Math.abs(dias)}d` : dias === 0 ? 'Vence hoy' : `${dias}d restantes`;
                   const estLbl = a.estado === 'devuelto' ? 'Devuelta'
                     : a.estado === 'en_revision' ? 'En revisión'
@@ -238,7 +238,7 @@
                       <td class="name-cell"><div class="name-cell__inner"><span class="name-cell__title" title="${p.nombre}">${p.nombre}</span></div></td>
                       <td>${a.nombre}</td>
                       <td>${p.municipio}<div class="meta-line">${p.departamento || ''}</div></td>
-                      <td class="numeric"><span class="sla-pill ${cls}"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${lbl}</span></td>
+                      <td class="numeric"><span class="plazo-inline ${cls}"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>${lbl}</span></td>
                       <td><span class="naowee-badge naowee-badge--${estColor} naowee-badge--quiet">${estLbl}</span></td>
                     </tr>`;
                 }).join('')}
