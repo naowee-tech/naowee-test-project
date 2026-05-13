@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
 <link rel="stylesheet" href="../shared/shell.css">
-<link rel="stylesheet" href="../shared/pages.css?v=20260513c">
+<link rel="stylesheet" href="../shared/pages.css?v=20260513e">
 </head>
 <body>
 <div class="shell">
@@ -21,7 +21,7 @@
 
 <script type="module">
   import ProjectData from '../shared/data.js';
-  import { mountShell } from '../shared/shell.js?v=20260513a';
+  import { mountShell } from '../shared/shell.js?v=20260513e';
   import { ESTADOS_POSTULACION, formatoMoneda, formatoFecha, diasRestantes } from '../shared/states.js';
   ProjectData.setPerfil('revisor');
   mountShell({ activeId: 'inicio' });
@@ -234,7 +234,7 @@
                     : 'neutral';
                   const href = a.areaId === 'general' ? `doc-general.html?id=${p.idUnico}` : `revisar-area.html?id=${p.idUnico}&area=${a.areaId}`;
                   return `
-                    <tr onclick="location.href='${href}'">
+                    <tr onclick="fadeAndGo('${href}')">
                       <td class="name-cell"><div class="name-cell__inner"><span class="name-cell__title" title="${p.nombre}">${p.nombre}</span></div></td>
                       <td>${a.nombre}</td>
                       <td>${p.municipio}<div class="meta-line">${p.departamento || ''}</div></td>
@@ -281,7 +281,7 @@
                     ? `<span class="prio-flag" title="Priorizado">${ICONS.flag}</span>`
                     : `<span class="prio-flag prio-flag--empty" aria-hidden="true"></span>`;
                   return `
-                    <tr onclick="location.href='revisar-postulacion.html?id=${p.idUnico}'">
+                    <tr onclick="fadeAndGo('revisar-postulacion.html?id=${p.idUnico}')">
                       <td>
                         <span class="rad-cell"><span class="code-cell">${flag}${(p.radicado || '—').split('-CONV-')[0]}</span></span>
                       </td>
