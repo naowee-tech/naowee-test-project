@@ -427,7 +427,18 @@ const SEED = {
         { ts: '2026-04-25T10:00:00', actor: 'revisor', evento: 'Postulación tomada para revisión', estado: 'en_revision' }
       ],
       fechaPostulacion: '2026-04-22T08:00:00',
-      fechaInicioRevision: '2026-04-25T10:00:00'
+      fechaInicioRevision: '2026-04-25T10:00:00',
+      /* v1.1 — Mock: prórroga RBI pendiente. El revisor pidió 15 días extra
+         y el admin todavía no decide. Renderiza el caso "pendiente" en
+         admin/prorrogas.html. */
+      prorrogaRBI: {
+        estado: 'pendiente',
+        solicitadaEn: '2026-05-08T14:22:00.000Z',
+        motivo: 'El expediente del predio tiene una controversia sobre uso del suelo que requiere consulta con Planeación Municipal antes de validar RBI. Solicito 15 días hábiles extra para completar la verificación.',
+        resueltaEn: null,
+        comentario: null,
+        resueltaPor: null
+      }
     },
 
     /* P-2C: en revisión, con tiempo medio */
@@ -455,7 +466,17 @@ const SEED = {
         { ts: '2026-04-30T09:00:00', actor: 'revisor', evento: 'En revisión', estado: 'en_revision' }
       ],
       fechaPostulacion: '2026-04-28T11:30:00',
-      fechaInicioRevision: '2026-04-30T09:00:00'
+      fechaInicioRevision: '2026-04-30T09:00:00',
+      /* v1.1 — Mock: prórroga RBI aprobada. Caso típico: el admin
+         concedió tiempo extra al revisor por carga alta de la convocatoria. */
+      prorrogaRBI: {
+        estado: 'aprobada',
+        solicitadaEn: '2026-05-04T09:15:00.000Z',
+        motivo: 'Carga alta de la convocatoria CONV-2026-001 (12 proyectos asignados). Necesito 15 días extra para revisar la doc de financiamiento.',
+        resueltaEn: '2026-05-04T15:42:00.000Z',
+        comentario: 'Aprobada. Se priorizan proyectos de zona Chocó por convergencia con PDET.',
+        resueltaPor: 'admin'
+      }
     },
 
     /* P-2D: devuelta a subsanación, esperando municipio */
@@ -490,7 +511,17 @@ const SEED = {
       ],
       fechaPostulacion: '2026-04-18T10:00:00',
       fechaDevolucion: '2026-04-29T14:00:00',
-      prorroga: null
+      prorroga: null,
+      /* v1.1 — Mock: prórroga RBI rechazada. Caso: revisor pidió tiempo
+         extra pero el admin priorizó cerrar la convocatoria a tiempo. */
+      prorrogaRBI: {
+        estado: 'rechazada',
+        solicitadaEn: '2026-04-26T11:08:00.000Z',
+        motivo: 'Necesito validar plano catastral y certificación presupuestal con la entidad emisora. 15 días extra ayudarían a aprobar limpio.',
+        resueltaEn: '2026-04-27T08:30:00.000Z',
+        comentario: 'La convocatoria CONV-2026-001 cierra el 30 de junio, no es viable extender. Devuelve con observaciones específicas para que el municipio subsane.',
+        resueltaPor: 'admin'
+      }
     },
 
     /* P-003: favorable, en etapa documental — varias áreas en revisión */
@@ -1411,7 +1442,11 @@ const ProjectData = (() => {
      (ej. nueva clave en revisores, nuevo perfil, restructure de áreas, o
      ajustes de montos del seed que invalidan el state guardado).
      Si el state guardado tiene versión distinta → auto-reset. */
-  const SCHEMA_VERSION = 4;
+  const SCHEMA_VERSION = 6;
+
+  /* v1.1 — Días extra que concede el admin cuando aprueba prórroga RBI.
+     Solo se puede solicitar UNA VEZ por proyecto. */
+  const PRORROGA_DIAS_EXTRA = 15;
 
   function load() {
     try {
@@ -1585,6 +1620,79 @@ const ProjectData = (() => {
     update(s => { s.proyectos.unshift(p); });
   }
 
+  /* ═══════════════════════════════════════════════════════════════════
+     v1.1 — Prórroga RBI (flujo nuevo, acta 13/05/2026 Danna)
+     ─────────────────────────────────────────────────────────────────
+     El revisor RBI puede solicitar al admin 15 días extra UNA SOLA VEZ
+     cuando se le va a vencer su plazo de revisión. El admin aprueba o
+     rechaza. Modelo:
+
+     proyecto.prorrogaRBI = {
+       estado: 'pendiente' | 'aprobada' | 'rechazada',
+       solicitadaEn: ISO,
+       motivo: string,
+       resueltaEn: ISO | null,
+       comentario: string | null,
+       resueltaPor: 'admin' | null
+     }
+     ═══════════════════════════════════════════════════════════════════ */
+
+  function solicitarProrrogaRBI(proyectoId, motivo) {
+    const p = getProyecto(proyectoId);
+    if (!p) return { ok: false, error: 'proyecto-no-encontrado' };
+    if (p.prorrogaRBI) return { ok: false, error: 'ya-solicitada' };
+    setProyecto(proyectoId, prev => ({
+      ...prev,
+      prorrogaRBI: {
+        estado: 'pendiente',
+        solicitadaEn: new Date().toISOString(),
+        motivo: (motivo || '').trim(),
+        resueltaEn: null,
+        comentario: null,
+        resueltaPor: null
+      }
+    }));
+    pushHistorial(proyectoId, {
+      actor: 'revisor',
+      evento: 'Prórroga RBI solicitada al admin · ' + (motivo || 'sin motivo'),
+      estado: getProyecto(proyectoId).estado
+    });
+    return { ok: true };
+  }
+
+  function resolverProrrogaRBI(proyectoId, decision, comentario) {
+    /* decision: 'aprobada' | 'rechazada' */
+    const p = getProyecto(proyectoId);
+    if (!p?.prorrogaRBI || p.prorrogaRBI.estado !== 'pendiente') {
+      return { ok: false, error: 'no-pendiente' };
+    }
+    if (decision !== 'aprobada' && decision !== 'rechazada') {
+      return { ok: false, error: 'decision-invalida' };
+    }
+    setProyecto(proyectoId, prev => ({
+      ...prev,
+      prorrogaRBI: {
+        ...prev.prorrogaRBI,
+        estado: decision,
+        resueltaEn: new Date().toISOString(),
+        comentario: (comentario || '').trim() || null,
+        resueltaPor: 'admin'
+      }
+    }));
+    pushHistorial(proyectoId, {
+      actor: 'admin',
+      evento: decision === 'aprobada'
+        ? `Prórroga RBI aprobada · ${PRORROGA_DIAS_EXTRA} días extra concedidos al revisor`
+        : 'Prórroga RBI rechazada por admin',
+      estado: getProyecto(proyectoId).estado
+    });
+    return { ok: true, diasExtra: decision === 'aprobada' ? PRORROGA_DIAS_EXTRA : 0 };
+  }
+
+  function getProyectosConProrrogaPendiente() {
+    return getProyectos().filter(p => p.prorrogaRBI?.estado === 'pendiente');
+  }
+
   /* Pool de revisores técnicos del Ministerio (Res. 933 Art. 3) */
   function getRevisores() {
     return load().revisores || [];
@@ -1687,26 +1795,80 @@ const ProjectData = (() => {
     };
   }
 
-  /* Marca una notificación como enviada con resultados simulados. */
-  function enviarNotificacion(convId) {
+  /* Throttle por defecto entre reenvíos consecutivos (Juanma 13/05/2026 min 42:30:
+     "no quiero que llegue 2 veces el email — soporte terrible"). */
+  const NOTIF_THROTTLE_HOURS = 24;
+
+  /* Devuelve metadata útil ANTES de reenviar (sin mutar estado):
+     - canSend: bool — true si pasa el throttle.
+     - hoursRemaining: horas restantes hasta poder reenviar.
+     - totalDestinatarios / noPostulantesCount: para mostrar en el modal. */
+  function inspectReenvio(convId) {
+    const c = getConvocatorias().find(x => x.id === convId);
+    if (!c) return { canSend: false, error: 'Convocatoria no encontrada' };
+    const ultimaTs = c.notificacion?.envio?.ts;
+    let hoursRemaining = 0;
+    let canSend = true;
+    if (ultimaTs) {
+      const horas = (Date.now() - new Date(ultimaTs).getTime()) / 3600000;
+      if (horas < NOTIF_THROTTLE_HOURS) {
+        canSend = false;
+        hoursRemaining = Math.ceil(NOTIF_THROTTLE_HOURS - horas);
+      }
+    }
+    const totalDestinatarios = c.notificacion?.destinatarios?.municipios?.length || 0;
+    /* Municipios que YA postularon a esta convocatoria */
+    const proyectosDeConv = load().proyectos.filter(p => p.convocatoriaId === convId);
+    const muniPostulantes = new Set(proyectosDeConv.map(p => p.municipio).filter(Boolean));
+    const noPostulantesCount = (c.notificacion?.destinatarios?.municipios || [])
+      .filter(d => !muniPostulantes.has(d.municipio)).length;
+    return { canSend, hoursRemaining, totalDestinatarios, noPostulantesCount, muniPostulantes };
+  }
+
+  /* Marca una notificación como enviada con resultados simulados.
+     opts:
+       - soloNoPostulantes: bool — si true, excluye municipios que ya
+         postularon a esta convocatoria.
+       - force: bool — si true, ignora el throttle (uso administrativo
+         para reenvíos manuales fuera de la ventana de 24h).
+     Retorna metadata útil para la UI. */
+  function enviarNotificacion(convId, opts = {}) {
+    const inspect = inspectReenvio(convId);
+    if (!inspect.canSend && !opts.force) {
+      return { ok: false, throttled: true, hoursRemaining: inspect.hoursRemaining };
+    }
+    let result = null;
     setConvocatoria(convId, c => {
       if (!c.notificacion) c.notificacion = defaultNotificacion(c);
-      const total = c.notificacion.destinatarios.municipios.length;
-      const conFalla = Math.random() < 0.3 ? 1 : 0; /* 30% de probabilidad de 1 falla */
+      /* Destinatarios efectivos: si soloNoPostulantes, filtrar */
+      const todos = c.notificacion.destinatarios.municipios || [];
+      const muniPostulantes = inspect.muniPostulantes || new Set();
+      const efectivos = opts.soloNoPostulantes
+        ? todos.filter(d => !muniPostulantes.has(d.municipio))
+        : todos;
+      const total = efectivos.length;
+      if (total === 0) {
+        result = { ok: false, empty: true };
+        return c;
+      }
+      const conFalla = Math.random() < 0.3 ? 1 : 0;
       const exitosos = total - conFalla;
       c.notificacion.estado = conFalla > 0 ? 'con_fallas' : 'enviada';
       c.notificacion.envio = {
         ts: new Date().toISOString(),
         exitosos,
         conFalla,
+        soloNoPostulantes: !!opts.soloNoPostulantes,
         fallos: conFalla > 0 ? [{
-          municipio: c.notificacion.destinatarios.municipios[total-1].municipio,
+          municipio: efectivos[total-1].municipio,
           canal: 'correo',
           motivo: 'Buzón institucional rebotó (cuota excedida)'
         }] : []
       };
+      result = { ok: true, exitosos, conFalla, total };
       return c;
     });
+    return result || { ok: false };
   }
 
   function pushHistorial(idProyecto, evento) {
@@ -1729,12 +1891,14 @@ const ProjectData = (() => {
     load, save, reset, update,
     setPerfil, getPerfil, getPerfilData,
     getProyectos, getProyecto, setProyecto, addProyecto,
+    solicitarProrrogaRBI, resolverProrrogaRBI, getProyectosConProrrogaPendiente,
+    PRORROGA_DIAS_EXTRA,
     getRevisores, getRevisor, setRevisor, getRevisorActivo, getRevisorPorArea,
     AREA_TO_SPECIALTY, SLA_DIAS_REVISION,
     getUsuariosMunicipales, getUsuarioMunicipal,
     addUsuarioMunicipal, setUsuarioMunicipal, removeUsuarioMunicipal,
     getConvocatorias, addConvocatoria, setConvocatoria,
-    defaultNotificacion, enviarNotificacion,
+    defaultNotificacion, enviarNotificacion, inspectReenvio, NOTIF_THROTTLE_HOURS,
     pushHistorial, pushNotificacion,
     SEED
   };

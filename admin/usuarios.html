@@ -7,32 +7,12 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/naowee-tech/naowee-design-system@v1.8.0/dist/design-system.css">
 <link rel="stylesheet" href="../shared/shell.css">
-<link rel="stylesheet" href="../shared/pages.css?v=20260513i">
+<link rel="stylesheet" href="../shared/pages.css?v=20260514a">
 <style>
-  /* ─── Tabs locales: A · Usuarios municipales · B · Áreas técnicas ─── */
-  .usuarios-tabs {
-    display: flex; gap: 4px;
-    border-bottom: 1.5px solid var(--border);
-    margin-bottom: 22px;
-  }
-  .usuarios-tab {
-    appearance: none; background: transparent; border: 0;
-    padding: 12px 18px;
-    font: inherit; font-size: 13.5px; font-weight: 600;
-    color: var(--text-secondary); cursor: pointer;
-    border-bottom: 2px solid transparent;
-    transition: color .15s, border-color .15s;
-    display: inline-flex; align-items: center; gap: 8px;
-    margin-bottom: -1.5px;
-  }
-  .usuarios-tab:hover { color: var(--text-primary); }
-  .usuarios-tab.is-active {
-    color: var(--accent); border-bottom-color: var(--accent);
-  }
-  .usuarios-tab__count {
-    background: var(--orange-bg); color: var(--accent);
-    font-size: 10.5px; font-weight: 700;
-    padding: 2px 8px; border-radius: 999px;
+  /* ─── Tabs DS dentro del .naowee-table-card ─── */
+  .usuarios-card .naowee-tabs {
+    padding: 0 18px; margin: 0;
+    border-bottom: 1px solid var(--border);
   }
   .usuarios-panel { display: none; animation: tabFadeIn .25s ease both; }
   .usuarios-panel.is-active { display: block; }
@@ -40,6 +20,8 @@
     from { opacity: 0; transform: translateY(4px); }
     to   { opacity: 1; transform: translateY(0); }
   }
+  /* La toolbar del table-card va sin top-border (el divider lo da el tab) */
+  .usuarios-card .naowee-table-card__toolbar { border-top: 0; }
 
   /* ─── Áreas técnicas: cards horizontales ─── */
   .areas-list {
@@ -94,47 +76,50 @@
     background: rgba(15, 17, 35, .55);
     display: flex; align-items: center; justify-content: center;
     padding: 24px;
-    opacity: 0; pointer-events: none;
-    transition: opacity .22s ease;
   }
-  .um-modal-overlay.is-open { opacity: 1; pointer-events: auto; }
+  .um-modal-overlay[hidden] { display: none; }
+  .um-modal-overlay.is-open { animation: umOverlayIn .22s ease forwards; }
+  .um-modal-overlay.is-closing { animation: umOverlayOut .2s ease forwards; }
+  @keyframes umOverlayIn  { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes umOverlayOut { from { opacity: 1 } to { opacity: 0 } }
   .um-modal {
     background: var(--surface); border-radius: var(--radius-xl);
-    width: 100%; max-width: 560px; max-height: 92vh;
+    width: 100%; max-width: 580px; max-height: 92vh;
     display: flex; flex-direction: column;
     box-shadow: 0 24px 60px -12px rgba(15,17,35,.35), 0 0 0 1px var(--border);
-    transform: translateY(16px) scale(.97); opacity: 0;
-    transition: transform .26s cubic-bezier(.4,0,.2,1), opacity .22s ease;
     overflow: hidden;
   }
-  .um-modal-overlay.is-open .um-modal { transform: translateY(0) scale(1); opacity: 1; }
+  .um-modal-overlay.is-open .um-modal {
+    animation: umModalIn .26s cubic-bezier(.4,0,.2,1) forwards;
+  }
+  @keyframes umModalIn {
+    from { opacity: 0; transform: translateY(16px) scale(.97) }
+    to   { opacity: 1; transform: translateY(0) scale(1) }
+  }
   .um-modal__hero {
-    padding: 22px 26px 16px;
+    padding: 22px 26px 18px;
     border-bottom: 1px solid var(--border);
-    background: linear-gradient(180deg, var(--orange-bg) 0%, #fff 80%);
   }
   .um-modal__title { font-size: 17px; font-weight: 700; color: var(--text-primary); }
-  .um-modal__sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; }
+  .um-modal__sub { font-size: 12.5px; color: var(--text-secondary); margin-top: 4px; line-height: 1.45; }
   .um-modal__body {
-    padding: 20px 26px;
+    padding: 22px 26px;
     overflow-y: auto; flex: 1;
-    display: flex; flex-direction: column; gap: 14px;
+  }
+  .um-modal__body #umForm,
+  .um-modal__body #umFormBody {
+    display: flex; flex-direction: column; gap: 20px;
   }
   .um-modal__grid {
-    display: grid; grid-template-columns: 1fr 1fr; gap: 14px;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 20px;
   }
   @media (max-width: 600px) { .um-modal__grid { grid-template-columns: 1fr; } }
   .um-modal__flags {
-    display: flex; gap: 16px; flex-wrap: wrap;
-    padding: 12px 14px; background: #fafbfd;
+    display: flex; gap: 22px; flex-wrap: wrap;
+    padding: 14px 16px; background: #fafbfd;
     border: 1px solid var(--border); border-radius: var(--radius-md);
+    margin-top: 8px;
   }
-  .um-modal__flag-item {
-    display: inline-flex; align-items: center; gap: 8px;
-    font-size: 12.5px; font-weight: 600; color: var(--text-primary);
-    cursor: pointer;
-  }
-  .um-modal__flag-item input { cursor: pointer; }
   .um-modal__footer {
     padding: 16px 26px; border-top: 1px solid var(--border);
     display: flex; justify-content: space-between; gap: 10px;
@@ -157,16 +142,10 @@
   .um-flag-pill--pdet { background: #f3edff; color: #7c3aed; }
   .um-flag-pill--ebi  { background: #eef5ff; color: #1f78d1; }
 
-  .um-tipo-badge {
-    display: inline-flex; padding: 3px 8px; border-radius: 999px;
-    font-size: 10.5px; font-weight: 700;
-    background: #f5f6fa; color: var(--text-secondary);
+  /* Tipo: texto label gris (sin badge) */
+  .um-tipo-label {
+    font-size: 12.5px; font-weight: 500; color: var(--text-secondary);
   }
-  .um-tipo-badge--alcaldia { background: var(--green-bg); color: var(--green); }
-  .um-tipo-badge--resguardo { background: #f3edff; color: #7c3aed; }
-  .um-tipo-badge--consejo   { background: #fff3e6; color: var(--accent); }
-  .um-tipo-badge--gob       { background: #eef5ff; color: #1f78d1; }
-  .um-tipo-badge--distrito  { background: #fffaee; color: #8b6f00; }
 </style>
 </head>
 <body>
@@ -189,56 +168,7 @@
     <div class="um-modal__body">
       <form id="umForm" novalidate>
         <input type="hidden" name="id" id="umId">
-        <div class="um-modal__grid">
-          <div>
-            <label class="naowee-dropdown__label naowee-textfield__label--required">Tipo de entidad</label>
-            <select name="tipoEntidad" id="umTipo" required style="width:100%;height:42px;padding:0 12px;border:1.5px solid var(--border-dark);border-radius:8px;font:inherit;font-size:13px;background:#fff">
-              <option value="Alcaldía Municipal">Alcaldía Municipal</option>
-              <option value="Distrito Especial">Distrito Especial</option>
-              <option value="Gobernación Departamental">Gobernación Departamental</option>
-              <option value="Resguardo Indígena">Resguardo Indígena</option>
-              <option value="Consejo Comunitario">Consejo Comunitario</option>
-            </select>
-          </div>
-          <div>
-            <label class="naowee-textfield__label naowee-textfield__label--required">NIT</label>
-            <input type="text" name="nit" id="umNit" placeholder="891.680.014" style="width:100%;height:42px;padding:0 12px;border:1.5px solid var(--border-dark);border-radius:8px;font:inherit;font-size:13px">
-            <span style="display:block;font-size:11px;color:var(--text-secondary);margin-top:4px" id="umNitHelper">Opcional para Resguardo / Consejo Comunitario</span>
-          </div>
-        </div>
-        <div class="um-modal__grid">
-          <div>
-            <label class="naowee-textfield__label naowee-textfield__label--required">Departamento</label>
-            <input type="text" name="departamento" required placeholder="Chocó" style="width:100%;height:42px;padding:0 12px;border:1.5px solid var(--border-dark);border-radius:8px;font:inherit;font-size:13px">
-          </div>
-          <div>
-            <label class="naowee-textfield__label">Municipio</label>
-            <input type="text" name="municipio" placeholder="Quibdó" style="width:100%;height:42px;padding:0 12px;border:1.5px solid var(--border-dark);border-radius:8px;font:inherit;font-size:13px">
-            <span style="display:block;font-size:11px;color:var(--text-secondary);margin-top:4px">Vacío si la entidad es departamental</span>
-          </div>
-        </div>
-        <div class="um-modal__grid">
-          <div>
-            <label class="naowee-textfield__label naowee-textfield__label--required">Persona contacto</label>
-            <input type="text" name="nombre" required placeholder="Carlos Mosquera" style="width:100%;height:42px;padding:0 12px;border:1.5px solid var(--border-dark);border-radius:8px;font:inherit;font-size:13px">
-          </div>
-          <div>
-            <label class="naowee-textfield__label naowee-textfield__label--required">Cargo</label>
-            <input type="text" name="cargo" required placeholder="Secretario de Planeación" style="width:100%;height:42px;padding:0 12px;border:1.5px solid var(--border-dark);border-radius:8px;font:inherit;font-size:13px">
-          </div>
-        </div>
-        <div>
-          <label class="naowee-textfield__label naowee-textfield__label--required">Correo institucional</label>
-          <input type="email" name="email" required placeholder="planeacion@municipio.gov.co" style="width:100%;height:42px;padding:0 12px;border:1.5px solid var(--border-dark);border-radius:8px;font:inherit;font-size:13px">
-        </div>
-        <div>
-          <label class="naowee-textfield__label" style="display:block;margin-bottom:8px">Marcadores territoriales</label>
-          <div class="um-modal__flags">
-            <label class="um-modal__flag-item"><input type="checkbox" name="zomac"> ZOMAC</label>
-            <label class="um-modal__flag-item"><input type="checkbox" name="pdet"> PDET</label>
-            <label class="um-modal__flag-item"><input type="checkbox" name="ebiPnd"> EBI/PND</label>
-          </div>
-        </div>
+        <div id="umFormBody"></div>
       </form>
     </div>
     <div class="um-modal__footer">
@@ -267,8 +197,9 @@
 
 <script type="module">
   import ProjectData from '../shared/data.js';
-  import { mountShell } from '../shared/shell.js?v=20260513j';
+  import { mountShell } from '../shared/shell.js?v=20260513o';
   import { toast } from '../shared/toast.js';
+  import { textfield, dropdown, checkbox, bindDropdowns, mountCheckboxes } from '../shared/wizard-page.js?v=20260513k';
   ProjectData.setPerfil('admin');
   mountShell({ activeId: 'usuarios' });
 
@@ -287,15 +218,14 @@
     { id: 'general',        label: 'Documentación general del proyecto', ref: 'Res. 933 Art. 1 y 2', especialidad: 'general' }
   ];
 
-  function badgeTipoClass(t) {
-    if (!t) return '';
-    if (t.startsWith('Alcaldía')) return 'um-tipo-badge--alcaldia';
-    if (t.startsWith('Resguardo')) return 'um-tipo-badge--resguardo';
-    if (t.startsWith('Consejo')) return 'um-tipo-badge--consejo';
-    if (t.startsWith('Gobernación')) return 'um-tipo-badge--gob';
-    if (t.startsWith('Distrito')) return 'um-tipo-badge--distrito';
-    return '';
-  }
+  const TIPOS_ENTIDAD = [
+    'Alcaldía Municipal',
+    'Distrito Especial',
+    'Gobernación Departamental',
+    'Resguardo Indígena',
+    'Consejo Comunitario'
+  ];
+  const SIN_NIT = new Set(['Resguardo Indígena', 'Consejo Comunitario']);
 
   function render() {
     const usuarios = ProjectData.getUsuariosMunicipales();
@@ -308,19 +238,18 @@
           </div>
         </div>
 
-        <div class="usuarios-tabs">
-          <button type="button" class="usuarios-tab is-active" data-panel="usuarios">
-            Usuarios municipales
-            <span class="usuarios-tab__count">${usuarios.length}</span>
-          </button>
-          <button type="button" class="usuarios-tab" data-panel="areas">
-            Áreas técnicas
-            <span class="usuarios-tab__count">${AREAS_CATALOGO.length}</span>
-          </button>
-        </div>
+        <div class="naowee-table-card usuarios-card">
+          <div class="naowee-tabs naowee-tabs--animated" role="tablist">
+            <button class="naowee-tab naowee-tab--selected" data-panel="usuarios" role="tab" type="button">
+              Usuarios municipales <span class="tab-count">${usuarios.length}</span>
+            </button>
+            <button class="naowee-tab" data-panel="areas" role="tab" type="button">
+              Áreas técnicas <span class="tab-count">${AREAS_CATALOGO.length}</span>
+            </button>
+            <span class="naowee-tabs__indicator"></span>
+          </div>
 
-        <div class="usuarios-panel is-active" data-panel="usuarios">
-          <div class="naowee-table-card">
+          <div class="usuarios-panel is-active" data-panel="usuarios">
             <div class="naowee-table-card__toolbar">
               <div class="naowee-table-card__toolbar-left">
                 <div class="naowee-searchbox naowee-searchbox--medium" style="width:340px">
@@ -353,7 +282,7 @@
                 <tbody id="umTbody">
                   ${usuarios.map(u => `
                     <tr class="row-clickable" data-id="${u.id}" data-search="${(u.municipio + ' ' + u.departamento + ' ' + u.nombre + ' ' + u.email).toLowerCase()}">
-                      <td><span class="um-tipo-badge ${badgeTipoClass(u.tipoEntidad)}">${u.tipoEntidad}</span></td>
+                      <td><span class="um-tipo-label">${u.tipoEntidad}</span></td>
                       <td>
                         <div style="font-weight:600;font-size:13px">${u.municipio || u.departamento}</div>
                         ${u.municipio ? `<div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px">${u.departamento}</div>` : '<div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px">Departamental</div>'}
@@ -362,8 +291,8 @@
                         <div style="font-weight:600;font-size:13px">${u.nombre}</div>
                         <div style="font-size:11.5px;color:var(--text-secondary);margin-top:2px">${u.cargo}</div>
                       </td>
-                      <td><span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px">${u.email}</span></td>
-                      <td><span style="font-family:'JetBrains Mono',ui-monospace,monospace;font-size:11.5px">${u.nit || '—'}</span></td>
+                      <td style="font-size:12.5px;color:var(--text-primary)">${u.email}</td>
+                      <td style="font-size:12.5px;color:var(--text-primary)">${u.nit || '—'}</td>
                       <td>
                         ${u.marcadores?.zomac ? '<span class="um-flag-pill">ZOMAC</span>' : ''}
                         ${u.marcadores?.pdet ? '<span class="um-flag-pill um-flag-pill--pdet">PDET</span>' : ''}
@@ -379,39 +308,39 @@
               </table>
             </div>
           </div>
-        </div>
 
-        <div class="usuarios-panel" data-panel="areas">
-          <div class="naowee-message naowee-message--informative" role="status" style="margin-bottom:18px">
-            <div class="naowee-message__header">
-              <span class="naowee-message__icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fff" stroke-width="1.4"/><path d="M8 7v4M8 4.5v.05" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
-              <span class="naowee-message__body">Cada área técnica tiene un responsable del pool de revisores. Cuando un proyecto entra a etapa documental, la asignación es automática por especialidad.</span>
+          <div class="usuarios-panel" data-panel="areas" style="padding:18px">
+            <div class="naowee-message naowee-message--informative" role="status" style="margin-bottom:18px">
+              <div class="naowee-message__header">
+                <span class="naowee-message__icon"><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="#fff" stroke-width="1.4"/><path d="M8 7v4M8 4.5v.05" stroke="#fff" stroke-width="1.5" stroke-linecap="round"/></svg></span>
+                <span class="naowee-message__body">Cada área técnica tiene un responsable del pool de revisores. Cuando un proyecto entra a etapa documental, la asignación es automática por especialidad.</span>
+              </div>
             </div>
-          </div>
-          <div class="areas-list">
-            ${AREAS_CATALOGO.map(a => {
-              const r = ProjectData.getRevisorPorArea(a.especialidad);
-              return `
-                <div class="area-mgmt-card">
-                  <div class="area-mgmt-card__icon">
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+            <div class="areas-list">
+              ${AREAS_CATALOGO.map(a => {
+                const r = ProjectData.getRevisorPorArea(a.especialidad);
+                return `
+                  <div class="area-mgmt-card">
+                    <div class="area-mgmt-card__icon">
+                      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="14" rx="2"/><path d="M3 10h18"/></svg>
+                    </div>
+                    <div class="area-mgmt-card__main">
+                      <div class="area-mgmt-card__title">${a.label}</div>
+                      <div class="area-mgmt-card__ref">${a.ref}</div>
+                      ${r ? `
+                        <span class="area-mgmt-card__rev">
+                          <span class="ava-ring" style="width:18px;height:18px;background:${r.color}22;color:${r.color};font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;border-radius:50%">${r.avatar}</span>
+                          ${r.nombre}
+                        </span>
+                      ` : `
+                        <span class="area-mgmt-card__rev area-mgmt-card__rev--missing">⚠ Sin responsable</span>
+                      `}
+                    </div>
+                    <button type="button" class="area-mgmt-card__change" data-area-especialidad="${a.especialidad}" data-area-label="${a.label}">Cambiar</button>
                   </div>
-                  <div class="area-mgmt-card__main">
-                    <div class="area-mgmt-card__title">${a.label}</div>
-                    <div class="area-mgmt-card__ref">${a.ref}</div>
-                    ${r ? `
-                      <span class="area-mgmt-card__rev">
-                        <span class="ava-ring" style="width:18px;height:18px;background:${r.color}22;color:${r.color};font-size:9px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;border-radius:50%">${r.avatar}</span>
-                        ${r.nombre}
-                      </span>
-                    ` : `
-                      <span class="area-mgmt-card__rev area-mgmt-card__rev--missing">⚠ Sin responsable</span>
-                    `}
-                  </div>
-                  <button type="button" class="area-mgmt-card__change" data-area-especialidad="${a.especialidad}" data-area-label="${a.label}">Cambiar</button>
-                </div>
-              `;
-            }).join('')}
+                `;
+              }).join('')}
+            </div>
           </div>
         </div>
       </div>
@@ -423,13 +352,27 @@
   }
 
   function bindTabs() {
-    const tabs = document.querySelectorAll('.usuarios-tab');
+    const tabsEl = document.querySelector('.usuarios-card .naowee-tabs');
+    if (!tabsEl) return;
+    const indicator = tabsEl.querySelector('.naowee-tabs__indicator');
+    const tabs = tabsEl.querySelectorAll('.naowee-tab');
     const panels = document.querySelectorAll('.usuarios-panel');
+
+    const positionIndicator = (tab) => {
+      const r = tab.getBoundingClientRect();
+      const parent = tabsEl.getBoundingClientRect();
+      indicator.style.width = r.width + 'px';
+      indicator.style.transform = `translateX(${r.left - parent.left}px)`;
+    };
+    const initial = tabsEl.querySelector('.naowee-tab--selected');
+    if (initial) requestAnimationFrame(() => positionIndicator(initial));
+
     tabs.forEach(t => {
       t.addEventListener('click', () => {
         const key = t.dataset.panel;
-        tabs.forEach(x => x.classList.toggle('is-active', x === t));
+        tabs.forEach(x => x.classList.toggle('naowee-tab--selected', x === t));
         panels.forEach(p => p.classList.toggle('is-active', p.dataset.panel === key));
+        positionIndicator(t);
       });
     });
   }
@@ -454,52 +397,93 @@
     });
   }
 
-  /* ─── Modal usuario ─── */
+  /* ─── Modal usuario (DS canónico) ─── */
   const userOverlay = document.getElementById('umOverlay');
+  const userForm = document.getElementById('umForm');
+  const userFormBody = document.getElementById('umFormBody');
+
+  function renderUserFormBody(u) {
+    const v = u || {};
+    const tipo = v.tipoEntidad || 'Alcaldía Municipal';
+    const nitRequired = !SIN_NIT.has(tipo);
+    userFormBody.innerHTML = `
+      <div class="um-modal__grid">
+        ${dropdown({ label: 'Tipo de entidad', name: 'tipoEntidad', required: true, options: TIPOS_ENTIDAD, value: tipo })}
+        ${textfield({ label: 'NIT', name: 'nit', required: nitRequired, placeholder: '891.680.014', helper: nitRequired ? 'NIT sin dígito de verificación' : 'No requerido para esta entidad', value: v.nit || '' })}
+      </div>
+      <div class="um-modal__grid">
+        ${textfield({ label: 'Departamento', name: 'departamento', required: true, placeholder: 'Chocó', value: v.departamento || '' })}
+        ${textfield({ label: 'Municipio', name: 'municipio', placeholder: 'Quibdó', helper: 'Vacío si la entidad es departamental', value: v.municipio || '' })}
+      </div>
+      <div class="um-modal__grid">
+        ${textfield({ label: 'Persona contacto', name: 'nombre', required: true, placeholder: 'Carlos Mosquera', value: v.nombre || '' })}
+        ${textfield({ label: 'Cargo', name: 'cargo', required: true, placeholder: 'Secretario de Planeación', value: v.cargo || '' })}
+      </div>
+      ${textfield({ label: 'Correo institucional', name: 'email', type: 'email', required: true, placeholder: 'planeacion@municipio.gov.co', value: v.email || '' })}
+      <div>
+        <label class="naowee-textfield__label" style="display:block;margin-bottom:8px">Marcadores territoriales</label>
+        <div class="um-modal__flags">
+          ${checkbox({ name: 'zomac',  value: 'on', label: 'ZOMAC',   checked: !!v.marcadores?.zomac })}
+          ${checkbox({ name: 'pdet',   value: 'on', label: 'PDET',    checked: !!v.marcadores?.pdet })}
+          ${checkbox({ name: 'ebiPnd', value: 'on', label: 'EBI/PND', checked: !!v.marcadores?.ebiPnd })}
+        </div>
+      </div>
+    `;
+    bindDropdowns(userForm);
+    mountCheckboxes(userForm);
+    syncNitFromTipo();
+  }
+
+  function syncNitFromTipo() {
+    const tipoHidden = userForm.querySelector('.naowee-dropdown[data-name="tipoEntidad"] input[type="hidden"]');
+    const nitField = userForm.querySelector('.naowee-textfield[data-name="nit"]');
+    if (!tipoHidden || !nitField) return;
+    const tipo = tipoHidden.value;
+    const sinNit = SIN_NIT.has(tipo);
+    const nitInput = nitField.querySelector('input[name="nit"]');
+    const helper = nitField.querySelector('.naowee-helper');
+    const labelEl = nitField.querySelector('.naowee-textfield__label');
+    if (sinNit) {
+      nitInput.removeAttribute('required');
+      labelEl?.classList.remove('naowee-textfield__label--required');
+      if (helper) { helper.textContent = 'No requerido para esta entidad'; helper.style.color = 'var(--green)'; }
+    } else {
+      nitInput.setAttribute('required', '');
+      labelEl?.classList.add('naowee-textfield__label--required');
+      if (helper) { helper.textContent = 'NIT sin dígito de verificación'; helper.style.color = ''; }
+    }
+  }
+
+  /* Re-syncea NIT helper cuando cambia el dropdown de tipoEntidad.
+     bindDropdowns dispara `change` en el hidden input al seleccionar opción. */
+  userForm.addEventListener('change', e => {
+    if (e.target.name === 'tipoEntidad') syncNitFromTipo();
+  });
+
   function openUserModal(id) {
     const u = id ? ProjectData.getUsuarioMunicipal(id) : null;
     document.getElementById('umTitle').textContent = u ? 'Editar usuario' : 'Crear usuario';
     document.getElementById('umDelete').hidden = !u;
-    const form = document.getElementById('umForm');
-    form.reset();
     document.getElementById('umId').value = u?.id || '';
-    if (u) {
-      form.elements.tipoEntidad.value = u.tipoEntidad;
-      form.elements.nit.value = u.nit || '';
-      form.elements.departamento.value = u.departamento;
-      form.elements.municipio.value = u.municipio || '';
-      form.elements.nombre.value = u.nombre;
-      form.elements.cargo.value = u.cargo;
-      form.elements.email.value = u.email;
-      form.elements.zomac.checked = !!u.marcadores?.zomac;
-      form.elements.pdet.checked = !!u.marcadores?.pdet;
-      form.elements.ebiPnd.checked = !!u.marcadores?.ebiPnd;
-    }
-    syncNitHelper();
+    renderUserFormBody(u);
     userOverlay.hidden = false;
-    requestAnimationFrame(() => userOverlay.classList.add('is-open'));
+    userOverlay.classList.add('is-open');
   }
   function closeUserModal() {
-    userOverlay.classList.remove('is-open');
-    setTimeout(() => { userOverlay.hidden = true; }, 240);
+    userOverlay.classList.add('is-closing');
+    setTimeout(() => {
+      userOverlay.classList.remove('is-open', 'is-closing');
+      userOverlay.hidden = true;
+    }, 200);
   }
-  function syncNitHelper() {
-    const tipo = document.getElementById('umTipo').value;
-    const helper = document.getElementById('umNitHelper');
-    const sinNit = tipo === 'Resguardo Indígena' || tipo === 'Consejo Comunitario';
-    document.getElementById('umNit').required = !sinNit;
-    helper.textContent = sinNit ? 'No requerido para esta entidad' : 'NIT sin dígito de verificación';
-    helper.style.color = sinNit ? 'var(--green)' : 'var(--text-secondary)';
-  }
-  document.getElementById('umTipo').addEventListener('change', syncNitHelper);
   document.getElementById('umCancel').addEventListener('click', closeUserModal);
   userOverlay.addEventListener('click', e => { if (e.target === userOverlay) closeUserModal(); });
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && !userOverlay.hidden) closeUserModal(); });
+
   document.getElementById('umSave').addEventListener('click', () => {
-    const form = document.getElementById('umForm');
-    const fd = new FormData(form);
+    const fd = new FormData(userForm);
     const tipoEntidad = fd.get('tipoEntidad');
-    const sinNit = tipoEntidad === 'Resguardo Indígena' || tipoEntidad === 'Consejo Comunitario';
+    const sinNit = SIN_NIT.has(tipoEntidad);
     const data = {
       tipoEntidad,
       nit: sinNit ? null : (fd.get('nit') || '').trim() || null,
@@ -514,7 +498,6 @@
         ebiPnd: fd.get('ebiPnd') === 'on'
       }
     };
-    /* Validación básica */
     if (!data.departamento || !data.nombre || !data.cargo || !data.email) {
       toast({ variant: 'caution', title: 'Campos requeridos', message: 'Completa Departamento, Contacto, Cargo y Correo.' });
       return;
@@ -584,11 +567,14 @@
       });
     });
     areaOverlay.hidden = false;
-    requestAnimationFrame(() => areaOverlay.classList.add('is-open'));
+    areaOverlay.classList.add('is-open');
   }
   function closeAreaModal() {
-    areaOverlay.classList.remove('is-open');
-    setTimeout(() => { areaOverlay.hidden = true; }, 240);
+    areaOverlay.classList.add('is-closing');
+    setTimeout(() => {
+      areaOverlay.classList.remove('is-open', 'is-closing');
+      areaOverlay.hidden = true;
+    }, 200);
   }
   document.getElementById('areaCancel').addEventListener('click', closeAreaModal);
   areaOverlay.addEventListener('click', e => { if (e.target === areaOverlay) closeAreaModal(); });
